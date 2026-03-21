@@ -1,0 +1,8 @@
+{
+  "name": "Brainies",
+  "short_name": "Brainies",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#121212",
+  "theme_color": "#4ade80"
+}

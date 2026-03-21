@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Brainies — Lessons</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Sora:wght@700;800&display=swap" rel="stylesheet"/>
+<link rel="stylesheet" href="https://fonts.cdnfonts.com/css/opendyslexic"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0b0d0f;--bg2:#141618;--bg3:#1e2124;
+  --border:#2c2f33;--border2:#3d4247;
+  --text:#f0f2f4;--text2:#8b949e;
+  --green:#3ddc84;--green-dim:rgba(61,220,132,.12);
+  --red:#f87171;--radius:12px;
+}
+body.light{
+  --bg:#f4f6f8;--bg2:#ffffff;--bg3:#edf0f3;
+  --border:#dde1e7;--border2:#bcc3cc;
+  --text:#1a1d21;--text2:#596475;
+  --green:#1a9e56;--green-dim:rgba(26,158,86,.10);
+}
+
+/* ── ACCESSIBILITY MODES ── */
+body.mode-dyslexic{--bg:#fefce8;--bg2:#fef9c3;--bg3:#fef08a;--border:#c8b400;--border2:#b8a400;--text:#111;--text2:#444;font-size:19px;line-height:2}
+body.mode-dyslexic,body.mode-dyslexic *{font-family:'OpenDyslexic','Courier New',monospace!important;letter-spacing:.06em!important;word-spacing:.15em!important}
+body.mode-dyslexic .qopt.correct{background:#0a3d0a!important;border-color:#166534!important;color:#fff!important}
+body.mode-dyslexic .qopt.wrong{background:#3d0a0a!important;border-color:#991b1b!important;color:#fff!important}
+body.mode-adhd{--bg:#f8f9fa;--bg2:#fff;--bg3:#f1f3f5;--border:#dee2e6;--border2:#ced4da;--text:#111;--text2:#555}
+body.mode-adhd *{animation:none!important}
+body.mode-adhd .lesson-sidebar{display:none!important}
+body.mode-blind{--bg:#000;--bg2:#111;--bg3:#1a1a1a;--border:#555;--border2:#777;--text:#fff;--text2:#ccc;font-size:20px}
+body.mode-blind button,body.mode-blind a{outline:3px solid #fff!important;outline-offset:3px}
+body.mode-deaf .caption-bar{display:flex!important}
+body.mode-motor button,body.mode-motor a{min-height:56px!important;font-size:18px!important;padding:.75rem 1.25rem!important}
+
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);transition:background .25s,color .25s}
+
+/* ── CAPTION BAR ── */
+.caption-bar{display:none;align-items:center;gap:.6rem;background:#0f172a;padding:.5rem 1.75rem;font-size:.82rem;color:#7dd3fc;border-bottom:1px solid #1e3a5f}
+.cap-dot{width:7px;height:7px;border-radius:50%;background:#60a5fa;animation:bl 1.2s infinite;flex-shrink:0}
+@keyframes bl{0%,100%{opacity:1}50%{opacity:.2}}
+
+/* ── OFFLINE BAR ── */
+.offline-bar{display:none;background:rgba(251,191,36,.1);border-bottom:1px solid rgba(251,191,36,.2);padding:.45rem 1.75rem;font-size:.8rem;color:#fbbf24;text-align:center}
+.offline-bar.show{display:block}
+
+/* ── TOAST ── */
+.toast-wrap{position:fixed;bottom:5rem;left:50%;transform:translateX(-50%);z-index:9000;display:flex;flex-direction:column;gap:.4rem;align-items:center;pointer-events:none}
+.toast{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:.5rem 1rem;font-size:.82rem;color:var(--text);white-space:nowrap;animation:tIn .2s ease}
+.toast.ok{background:var(--green-dim);border-color:var(--green);color:var(--green)}
+.toast.err{background:rgba(248,113,113,.08);border-color:var(--red);color:var(--red)}
+@keyframes tIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* ── NAV ── */
+nav{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;padding:.85rem 1.75rem;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50}
+.nav-logo{color:var(--green);font-size:1.1rem;font-weight:700;text-decoration:none;font-family:'Sora',sans-serif}
+.nav-right{margin-left:auto;display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
+nav a,nav button,nav select{padding:.38rem .75rem;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:.78rem;cursor:pointer;text-decoration:none;font-family:'DM Sans',sans-serif;transition:all .2s}
+nav a:hover,nav button:hover{border-color:var(--green);color:var(--green)}
+
+/* ── LAYOUT ── */
+.layout{display:grid;grid-template-columns:230px 1fr;min-height:calc(100vh - 56px)}
+@media(max-width:680px){.layout{grid-template-columns:1fr}.lesson-sidebar{display:none!important}}
+
+/* ── SIDEBAR ── */
+.lesson-sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:1.25rem .75rem;position:sticky;top:56px;height:calc(100vh - 56px);overflow-y:auto}
+.sb-hd{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text2);margin-bottom:.5rem;padding:0 .4rem}
+.sb-prog{height:4px;background:var(--border2);border-radius:50px;margin:.5rem .4rem .9rem}
+.sb-prog-fill{height:4px;border-radius:50px;background:var(--green);transition:width .4s}
+.sb-item{display:flex;align-items:center;gap:.6rem;padding:.55rem .6rem;border-radius:8px;cursor:pointer;font-size:.82rem;margin-bottom:.2rem;border:1px solid transparent;color:var(--text2);transition:all .15s}
+.sb-item:hover{background:var(--bg3)}
+.sb-item.active{background:var(--bg3);border-color:var(--green);color:var(--green)}
+.sb-num{width:22px;height:22px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;flex-shrink:0;border:1px solid var(--border2)}
+.sb-item.done .sb-num{background:var(--green);color:#000;border-color:var(--green)}
+
+/* ── MAIN ── */
+.lesson-main{padding:2rem 2.5rem 4rem;max-width:740px}
+@media(max-width:900px){.lesson-main{padding:1.5rem 1rem}}
+
+/* ── LESSON CONTENT ── */
+.lesson-tag{font-size:.72rem;text-transform:uppercase;letter-spacing:.1em;color:var(--green);margin-bottom:.35rem}
+.lesson-title{font-family:'Sora',sans-serif;font-size:1.85rem;font-weight:700;margin-bottom:.4rem;line-height:1.2}
+.lesson-meta{font-size:.78rem;color:var(--text2);margin-bottom:1.75rem;display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+.meta-tag{padding:.18rem .55rem;border-radius:20px;background:var(--green-dim);border:1px solid rgba(61,220,132,.2);color:var(--green);font-size:.72rem}
+.content p{margin-bottom:1.1rem;font-size:.95rem;line-height:1.8}
+.content h3{font-size:1.05rem;font-weight:700;margin:1.5rem 0 .6rem;font-family:'Sora',sans-serif}
+.callout{border-left:3px solid var(--green);padding:.85rem 1rem;background:var(--bg2);border-radius:0 8px 8px 0;margin:1.1rem 0;font-size:.88rem;color:var(--text2);line-height:1.65}
+.callout strong{color:var(--green);display:block;margin-bottom:.3rem}
+
+/* ── QUIZ BOX ── */
+.quiz-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin-top:2rem}
+.quiz-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.35rem;flex-wrap:wrap;gap:.5rem}
+.quiz-title{font-size:1rem;font-weight:700;font-family:'Sora',sans-serif}
+.quiz-score-badge{font-size:.75rem;padding:.2rem .6rem;border-radius:20px;background:var(--green-dim);border:1px solid rgba(61,220,132,.2);color:var(--green);font-weight:600}
+.quiz-q{font-size:.92rem;margin-bottom:1rem;color:var(--text2);line-height:1.55}
+.quiz-opts{display:flex;flex-direction:column;gap:.5rem}
+.qopt{
+  padding:.78rem 1rem;border-radius:9px;border:1px solid var(--border2);
+  background:var(--bg3);cursor:pointer;font-size:.88rem;
+  text-align:left;color:var(--text);font-family:'DM Sans',sans-serif;
+  transition:all .15s;
+}
+.qopt:hover:not(:disabled){border-color:var(--green);background:var(--green-dim)}
+.qopt.correct{border-color:#22c55e!important;background:rgba(34,197,94,.15)!important;color:#22c55e!important;font-weight:600}
+.qopt.wrong{border-color:#ef4444!important;background:rgba(239,68,68,.12)!important;color:#ef4444!important}
+.quiz-fb{margin-top:.75rem;padding:.8rem 1rem;border-radius:9px;font-size:.85rem;display:none;line-height:1.55}
+.quiz-fb.show{display:block}
+.quiz-fb.ok{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:#22c55e}
+.quiz-fb.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#ef4444}
+.quiz-next{display:none;gap:.5rem;margin-top:.85rem;flex-wrap:wrap}
+.quiz-next.show{display:flex}
+
+/* ── NAV BUTTONS ── */
+.lesson-nav{display:flex;justify-content:space-between;margin-top:2.5rem;padding-top:1.5rem;border-top:1px solid var(--border);gap:.75rem;flex-wrap:wrap}
+.navbtn{padding:.65rem 1.25rem;border-radius:9px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:.88rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
+.navbtn:hover{border-color:var(--green);color:var(--green)}
+.navbtn.primary{background:var(--green);color:#000;border-color:var(--green);font-weight:700}
+
+/* ── OCR MODAL ── */
+#ocr-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:500;align-items:center;justify-content:center;backdrop-filter:blur(4px)}
+#ocr-modal.show{display:flex}
+.ocr-box{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:1.75rem;width:min(480px,95vw);position:relative}
+.ocr-box h3{font-size:1rem;margin-bottom:.75rem;font-family:'Sora',sans-serif}
+.ocr-upload{border:2px dashed var(--border2);border-radius:8px;padding:2rem;text-align:center;cursor:pointer;color:var(--text2);font-size:.88rem;transition:all .2s}
+.ocr-upload:hover{border-color:var(--green);color:var(--green)}
+.ocr-result{margin-top:.75rem;padding:.75rem;background:var(--bg3);border-radius:7px;font-size:.85rem;color:var(--text2);max-height:200px;overflow-y:auto;display:none}
+.ocr-actions{display:none;gap:.5rem;margin-top:.5rem;flex-wrap:wrap}
+.modal-close{position:absolute;top:.75rem;right:.75rem;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;padding:.3rem .7rem;cursor:pointer;color:var(--text2);font-size:.8rem;font-family:'DM Sans',sans-serif}
+
+/* ── VOICE FAB ── */
+#vfab{position:fixed;bottom:1.25rem;right:1.25rem;width:50px;height:50px;border-radius:50%;background:var(--green);color:#000;border:none;font-size:1.2rem;cursor:pointer;z-index:99;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 12px rgba(61,220,132,.3)}
+#vfab.on{background:#f97316;box-shadow:0 2px 12px rgba(249,115,22,.3)}
+</style>
+</head>
+<body>
+
+<div class="caption-bar" id="caption-bar">
+  <div class="cap-dot"></div>
+  <span id="cap-txt">Captions active</span>
+</div>
+
+<div class="offline-bar" id="offline-bar">
+  📴 You are offline — cached lessons are still available!
+</div>
+
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<nav>
+  <a href="index.html" class="nav-logo">🧠 Brainies</a>
+  <div class="nav-right">
+    <button onclick="readLesson()">🔊 Read</button>
+    <button onclick="simplifyLesson()" id="simp-btn">✨ Simplify</button>
+    <button onclick="restoreLesson()" id="restore-btn" style="display:none">↩ Restore</button>
+    <select onchange="translateLesson(this.value);this.value=''" id="lang-sel">
+      <option value="">🌐 Translate</option>
+      <option value="hi">Hindi</option><option value="mr">Marathi</option>
+      <option value="ta">Tamil</option><option value="te">Telugu</option>
+      <option value="bn">Bengali</option><option value="gu">Gujarati</option>
+    </select>
+    <button onclick="openOCR()">📷 Scan</button>
+    <button onclick="changeFontSize(2)">A+</button>
+    <button onclick="changeFontSize(-2)">A-</button>
+    <button onclick="toggleTheme()" id="theme-btn">🌙</button>
+    <a href="index.html">🏠 Home</a>
+  </div>
+</nav>
+
+<div class="layout">
+  <aside class="lesson-sidebar">
+    <div class="sb-hd">Science — Chapter 4</div>
+    <div class="sb-prog"><div class="sb-prog-fill" id="sb-prog"></div></div>
+    <div id="sb-list"></div>
+  </aside>
+  <main class="lesson-main" id="lesson-main"></main>
+</div>
+
+<!-- OCR MODAL -->
+<div id="ocr-modal">
+  <div class="ocr-box">
+    <button class="modal-close" onclick="closeOCR()">✕ Close</button>
+    <h3>📷 Scan Textbook Page</h3>
+    <p style="font-size:.82rem;color:var(--text2);margin-bottom:.75rem">Upload a photo of any textbook page to extract text.</p>
+    <div class="ocr-upload" onclick="document.getElementById('ocr-file').click()" role="button" tabindex="0">📷 Click to upload image</div>
+    <input type="file" id="ocr-file" accept="image/*" style="display:none" onchange="runOCR(this)"/>
+    <div class="ocr-result" id="ocr-result"></div>
+    <div class="ocr-actions" id="ocr-actions">
+      <button class="navbtn" onclick="sendOCRToSimplify()">→ Simplify</button>
+      <button class="navbtn" onclick="speakOCR()">🔊 Read aloud</button>
+      <button class="navbtn" onclick="closeOCR()">✓ Done</button>
+    </div>
+  </div>
+</div>
+
+<button id="vfab" onclick="toggleVoice()" title="Voice commands (say: next, read, quiz)">🎙️</button>
+
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+<script src="brainies-voice.js"></script>
+<script>
+const API = '';
+let cur = 0, originalContent = {}, ocrExtracted = '';
+
+/* ── QUIZ ANSWERS (secure — not in HTML) ── */
+const QA = {
+  0:{c:1,e:'Plants use photosynthesis — not respiration — to make food from sunlight.'},
+  1:{c:2,e:'The nucleus controls all cell activities and contains DNA.'},
+  2:{c:0,e:'The water cycle: evaporation → clouds → rain (precipitation).'},
+  3:{c:1,e:'Plants absorb carbon dioxide (CO₂) from the air through stomata.'},
+  4:{c:3,e:'Isaac Newton described the law of universal gravitation after observing a falling apple.'},
+  5:{c:1,e:'DNA stands for Deoxyribonucleic Acid.'},
+  6:{c:0,e:'Friction is the force that opposes motion between two surfaces.'},
+  7:{c:1,e:'Earth takes 365.25 days to orbit the Sun — the 0.25 gives us a leap year.'},
+  8:{c:0,e:'Only plants, algae, and some bacteria can photosynthesise.'},
+};
+
+/* ── LESSONS ── */
+const LESSONS=[
+  {chapter:'Lesson 1',title:'Introduction to Plants',dur:'5 min',
+   content:`<p>Plants are living organisms found almost everywhere on Earth — in forests, deserts, oceans, and frozen tundra. Unlike animals, plants make their own food using sunlight through a process called photosynthesis.</p>
+   <h3>Why plants matter</h3>
+   <p>Plants produce the oxygen we breathe and form the base of all food chains. Without plants, life on Earth would be impossible. There are over 390,000 known plant species, from tiny mosses to giant sequoias that live thousands of years.</p>
+   <div class="callout"><strong>💡 Key fact</strong>Every breath we take depends on plants. They release oxygen as a byproduct of making food from sunlight.</div>`,
+   q:'Which process do plants use to make their own food?',opts:['Respiration','Photosynthesis','Digestion','Fermentation']},
+
+  {chapter:'Lesson 2',title:'Parts of a Plant',dur:'6 min',
+   content:`<p>Every plant has parts that do specific jobs. The main parts are roots, stem, leaves, flowers, and fruit. Each part is essential for the plant to survive and reproduce.</p>
+   <h3>Roots and stem</h3>
+   <p>Roots anchor the plant in the soil and absorb water and minerals. The stem supports the plant and acts as a pipeline, moving water up to the leaves and sugars down to the roots.</p>
+   <h3>Leaves</h3>
+   <p>Leaves are the main site of photosynthesis. Their broad flat shape captures maximum sunlight. Tiny pores called stomata on the underside allow carbon dioxide in and oxygen out.</p>
+   <div class="callout"><strong>⚠ Remember</strong>The nucleus controls all cell activities and contains DNA — this applies to plant cells too, not just animals.</div>`,
+   q:'Which part of a plant cell controls all cell activities?',opts:['Cell wall','Chloroplast','Nucleus','Vacuole']},
+
+  {chapter:'Lesson 3',title:'How Plants Grow',dur:'7 min',
+   content:`<p>Plants grow from seeds through germination. When conditions are right — warmth, moisture, and light — a seed absorbs water and its embryo starts growing. A shoot pushes upward and roots push downward.</p>
+   <h3>The water cycle and plants</h3>
+   <p>Plants depend on the water cycle. Water evaporates from soil and plant leaves, rises as water vapour, condenses into clouds, and falls as rain. This keeps water moving through the environment continuously.</p>
+   <div class="callout"><strong>💡 Key fact</strong>A large tree can release hundreds of litres of water into the atmosphere every single day through transpiration — water evaporating from its leaves.</div>`,
+   q:'What does the water cycle describe?',opts:['Water evaporating, forming clouds, and falling as rain','How plants absorb sunlight','How animals drink water','How rivers reach the sea']},
+
+  {chapter:'Lesson 4',title:'Photosynthesis',dur:'8 min',
+   content:`<p>Photosynthesis is how plants make their own food. Using sunlight, water, and carbon dioxide, plants produce glucose (sugar) and release oxygen. It happens in the green parts of the plant, especially leaves.</p>
+   <h3>The equation</h3>
+   <div class="callout"><strong>💡 Key formula</strong>Carbon dioxide + Water + Sunlight → Glucose + Oxygen<br/>6CO₂ + 6H₂O + light → C₆H₁₂O₆ + 6O₂</div>
+   <p>Photosynthesis happens inside chloroplasts — tiny green structures in plant cells. The green pigment chlorophyll captures sunlight energy. Only the green parts of a plant can photosynthesise.</p>`,
+   q:'What do plants absorb from the air for photosynthesis?',opts:['Oxygen','Carbon dioxide','Nitrogen','Glucose']},
+
+  {chapter:'Lesson 5',title:'Plant Reproduction',dur:'7 min',
+   content:`<p>Plants reproduce in two main ways: sexually using seeds from flowers, and asexually using existing plant parts. Both methods have advantages in different environments.</p>
+   <h3>Pollination</h3>
+   <p>Sexual reproduction needs pollination — pollen transfers from the stamen (male) to the pistil (female). Wind, insects, birds, and bats help pollinate. After fertilisation, seeds develop inside fruit.</p>
+   <div class="callout"><strong>💡 Did you know?</strong>Bees pollinate about one-third of all the food we eat. Without bees, most fruits and vegetables would fail to grow.</div>
+   <h3>Asexual reproduction</h3>
+   <p>New plants can grow from runners (strawberries), bulbs (onions), tubers (potatoes), or cuttings. These produce clones of the parent plant — genetically identical.</p>`,
+   q:'Who formulated the law of universal gravitation?',opts:['Albert Einstein','Galileo Galilei','Charles Darwin','Isaac Newton']},
+
+  {chapter:'Lesson 6',title:'Respiration in Plants',dur:'6 min',
+   content:`<p>Like animals, plants need energy to live and grow. They get energy through cellular respiration — breaking down glucose using oxygen to release energy, carbon dioxide, and water.</p>
+   <h3>Respiration vs Photosynthesis</h3>
+   <p>These processes are nearly opposite. Photosynthesis takes in CO₂ and releases O₂. Respiration takes in O₂ and releases CO₂. During the day photosynthesis dominates; at night only respiration occurs.</p>
+   <div class="callout"><strong>💡 Key fact</strong>DNA stands for Deoxyribonucleic Acid. It carries genetic information in almost all living organisms, including plants.</div>`,
+   q:'What does DNA stand for?',opts:['Deoxyribose Nucleic Acid','Deoxyribonucleic Acid','Diribonucleic Acid','Deoxyribose Natural Acid']},
+
+  {chapter:'Lesson 7',title:'Water Transport',dur:'6 min',
+   content:`<p>Plants have a vascular system to transport water and food. It has two tube types: xylem (carries water upward) and phloem (carries sugars). Together they form the plant's internal highway.</p>
+   <h3>Xylem and phloem</h3>
+   <p>Xylem vessels carry water and minerals from roots up to leaves. Phloem tubes carry dissolved sugars made in leaves down to roots, stems, and growing areas. Water moves up due to transpiration pull — as leaves lose water, more water is pulled up from below.</p>
+   <div class="callout"><strong>⚠ Remember</strong>Friction is the force that opposes motion between surfaces. Water also faces resistance as it travels up narrow xylem tubes.</div>`,
+   q:'What is friction?',opts:['A force opposing motion between surfaces','A form of stored energy','A type of chemical reaction','The pull of gravity']},
+
+  {chapter:'Lesson 8',title:'Nutrients and Soil',dur:'7 min',
+   content:`<p>Plants need mineral nutrients from soil in addition to sunlight and water. The most important are nitrogen (for leaf growth), phosphorus (for roots and flowers), and potassium (for overall health).</p>
+   <h3>Soil structure</h3>
+   <p>Healthy soil is a complex mix of minerals, organic matter, water, air, and billions of microorganisms. Earthworms, bacteria, and fungi break down dead material into nutrients that plant roots absorb.</p>
+   <div class="callout"><strong>💡 Key fact</strong>Earth takes approximately 365.25 days to orbit the Sun. The extra 0.25 is why we add a leap day (Feb 29) every 4 years.</div>`,
+   q:'How long does Earth take to orbit the Sun?',opts:['24 hours','365.25 days','28 days','12 months exactly']},
+
+  {chapter:'Lesson 9',title:'Ecosystems',dur:'8 min',
+   content:`<p>An ecosystem is a community of living organisms — plants, animals, microbes — interacting with each other and with their non-living environment. Plants are the producers in almost every ecosystem.</p>
+   <h3>Food chains and webs</h3>
+   <p>Energy flows through food chains. Plants (producers) are eaten by herbivores (primary consumers), which are eaten by carnivores (secondary consumers). Energy is lost at each level — chains rarely exceed 5 links.</p>
+   <div class="callout"><strong>⚠ Remember</strong>Only plants, algae, and some bacteria can photosynthesise. Animals cannot make food from sunlight — they must eat other organisms.</div>
+   <h3>Biodiversity</h3>
+   <p>Biodiversity is the variety of life in an ecosystem. High biodiversity makes ecosystems stable and resilient. Deforestation, pollution, and climate change are the biggest threats to biodiversity today.</p>`,
+   q:'Which organisms can perform photosynthesis?',opts:['Plants, algae, and some bacteria','All living things','Only plants','Animals and plants']},
+];
+
+/* ── TOAST ── */
+function toast(msg,type){const w=document.getElementById('toast-wrap');const t=document.createElement('div');t.className='toast'+(type?' '+type:'');t.textContent=msg;w.appendChild(t);setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .3s';setTimeout(()=>t.remove(),300)},2500);}
+
+/* ── SPEAK ── */
+function speak(t){if(window.BV){window.BV.speak(t);return;}window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='en-IN';u.rate=0.9;window.speechSynthesis.speak(u);const c=document.getElementById('cap-txt');if(c)c.textContent=t;}
+
+/* ── FONT SIZE ── */
+let fs=16;
+function changeFontSize(d){fs=Math.max(12,Math.min(26,fs+d));document.documentElement.style.fontSize=fs+'px';}
+
+/* ── THEME ── */
+function toggleTheme(){const light=document.body.classList.toggle('light');document.getElementById('theme-btn').textContent=light?'☀️':'🌙';localStorage.setItem('brainies_theme',light?'light':'dark');}
+
+/* ── SIDEBAR ── */
+function renderSidebar(){
+  const done=JSON.parse(localStorage.getItem('brainies_done')||'[]');
+  const list=document.getElementById('sb-list');list.innerHTML='';
+  LESSONS.forEach((l,i)=>{
+    const d=document.createElement('div');
+    d.className='sb-item'+(i===cur?' active':'')+(done.includes(i)?' done':'');
+    d.innerHTML=`<div class="sb-num">${done.includes(i)?'✓':(i+1)}</div><span>${l.title}</span>`;
+    d.onclick=()=>loadLesson(i);list.appendChild(d);
+  });
+  const pct=Math.round(done.length/LESSONS.length*100);
+  document.getElementById('sb-prog').style.width=pct+'%';
+}
+
+/* ── QUIZ SCORE TRACKING ── */
+function getQuizScores(){return JSON.parse(localStorage.getItem('brainies_quiz_scores')||'{}')}
+function saveQuizScore(li,correct){const s=getQuizScores();s[li]=correct;localStorage.setItem('brainies_quiz_scores',JSON.stringify(s));}
+function getScoreSummary(){const s=getQuizScores();const keys=Object.keys(s);if(!keys.length)return null;const correct=keys.filter(k=>s[k]).length;return{correct,total:keys.length,pct:Math.round(correct/keys.length*100)};}
+
+/* ── LOAD LESSON ── */
+function loadLesson(i){
+  cur=i;localStorage.setItem('brainies_curlss',i);
+  document.getElementById('restore-btn').style.display='none';
+  document.getElementById('simp-btn').style.display='';
+  originalContent={};
+  const L=LESSONS[i];
+  const done=JSON.parse(localStorage.getItem('brainies_done')||'[]');
+  const scores=getQuizScores();
+  const quizDone=scores.hasOwnProperty(i);
+  const scorePct=quizDone?(scores[i]?'✅ Correct':'❌ Missed'):'';
+
+  document.getElementById('lesson-main').innerHTML=`
+    <div class="lesson-tag">${L.chapter}</div>
+    <div class="lesson-title">${L.title}</div>
+    <div class="lesson-meta">
+      <span>⏱ ${L.dur} read</span>
+      <span class="meta-tag">Grade 6–8</span>
+      <span class="meta-tag">Biology</span>
+      ${done.includes(i)?'<span class="meta-tag">✅ Completed</span>':''}
+    </div>
+    <div class="content" id="lesson-content">${L.content}</div>
+    <div class="quiz-box" id="quiz-section">
+      <div class="quiz-header">
+        <div class="quiz-title">🎯 Quick Quiz</div>
+        ${quizDone?`<div class="quiz-score-badge">${scorePct}</div>`:'<div class="quiz-score-badge">+50 pts on correct</div>'}
+      </div>
+      <div class="quiz-q" id="quiz-q">${L.q}</div>
+      <div class="quiz-opts">
+        ${L.opts.map((o,j)=>`<button class="qopt" onclick="checkAns(this,${i},${j})">${o}</button>`).join('')}
+      </div>
+      <div class="quiz-fb" id="qfb"></div>
+      <div class="quiz-next" id="qnext">
+        <button class="navbtn primary" onclick="completeLess(${i})">✅ Complete lesson</button>
+        <button class="navbtn" onclick="loadLesson(${i})">↺ Try quiz again</button>
+      </div>
+    </div>
+    <div class="lesson-nav">
+      <button class="navbtn" onclick="${i>0?`loadLesson(${i-1})`:`window.location='index.html'`}">${i>0?'← '+LESSONS[i-1].title:'← Home'}</button>
+      <button class="navbtn primary" onclick="${i<LESSONS.length-1?`loadLesson(${i+1})`:`window.location='index.html'`}">${i<LESSONS.length-1?LESSONS[i+1].title+' →':'🎉 Finish!'}</button>
+    </div>`;
+  renderSidebar();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ── QUIZ CHECK ── */
+function checkAns(btn,li,j){
+  const ans=QA[li];
+  document.querySelectorAll('.qopt').forEach(b=>b.disabled=true);
+  const fb=document.getElementById('qfb');
+  const correct=j===ans.c;
+  saveQuizScore(li,correct);
+  if(correct){
+    btn.classList.add('correct');
+    fb.className='quiz-fb show ok';fb.textContent='✅ Correct! '+ans.e;
+    speak('Correct! '+ans.e);toast('✅ Correct! +50 points','ok');
+    // Add points
+    const pts=parseInt(localStorage.getItem('brainies_points')||'0');
+    localStorage.setItem('brainies_points',(pts+50).toString());
+  }else{
+    btn.classList.add('wrong');
+    document.querySelectorAll('.qopt')[ans.c].classList.add('correct');
+    fb.className='quiz-fb show err';fb.textContent='❌ Not quite. '+ans.e;
+    speak('Not quite. '+ans.e);toast('❌ Wrong answer','err');
+  }
+  document.getElementById('qnext').className='quiz-next show';
+  // Update score badge live
+  const badge=document.querySelector('.quiz-score-badge');
+  if(badge)badge.textContent=correct?'✅ Correct':'❌ Missed';
+}
+
+/* ── COMPLETE ── */
+async function completeLess(i){
+  const done=JSON.parse(localStorage.getItem('brainies_done')||'[]');
+  if(!done.includes(i)){done.push(i);localStorage.setItem('brainies_done',JSON.stringify(done));}
+  const sid=localStorage.getItem('brainies_sid')||'guest';
+  const pts=parseInt(localStorage.getItem('brainies_points')||'0');
+  try{
+    await fetch(API+'/save-progress',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({student_id:sid,lesson_id:'lesson_'+i,score:100,completed:true,points_earned:50,timestamp:new Date().toISOString()})});
+  }catch{}
+  toast('🎉 Lesson complete!','ok');speak('Lesson complete! Well done!');
+  renderSidebar();
+  setTimeout(()=>{if(i<LESSONS.length-1)loadLesson(i+1);else window.location.href='index.html';},1400);
+}
+
+/* ── READ ── */
+function readLesson(){const c=document.getElementById('lesson-content');if(c)speak(c.innerText.substring(0,1500));}
+
+/* ── SIMPLIFY ── */
+async function simplifyLesson(){
+  const paras=document.querySelectorAll('#lesson-content p');
+  paras.forEach((p,i)=>{if(!originalContent[i])originalContent[i]=p.textContent;});
+  let anyFail=false;
+  for(const[i,p] of [...paras].entries()){
+    const orig=originalContent[i];p.textContent='Simplifying...';
+    try{const r=await fetch(API+'/simplify',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:orig})});const d=await r.json();p.textContent=d.result||orig;}
+    catch{p.textContent=orig;anyFail=true;}
+  }
+  document.getElementById('simp-btn').style.display='none';
+  document.getElementById('restore-btn').style.display='';
+  toast(anyFail?'⚠ Backend offline — run py App.py':'✅ Text simplified!',anyFail?'err':'ok');
+}
+
+/* ── RESTORE ── */
+function restoreLesson(){
+  const paras=document.querySelectorAll('#lesson-content p');
+  paras.forEach((p,i)=>{if(originalContent[i])p.textContent=originalContent[i];});
+  document.getElementById('restore-btn').style.display='none';
+  document.getElementById('simp-btn').style.display='';
+  originalContent={};
+  toast('↩ Original text restored');
+}
+
+/* ── TRANSLATE ── */
+async function translateLesson(lang){
+  if(!lang)return;
+  const paras=document.querySelectorAll('#lesson-content p');
+  let anyFail=false;
+  for(const p of paras){
+    const orig=p.textContent;p.textContent='Translating...';
+    try{
+      let t;
+      try{const r=await fetch(API+'/translate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text:orig.substring(0,500),lang})});const d=await r.json();t=d.result;}
+      catch{const r=await fetch('https://api.mymemory.translated.net/get?q='+encodeURIComponent(orig.substring(0,500))+'&langpair=en|'+lang);const d=await r.json();t=d.responseData.translatedText;}
+      if(t)p.textContent=t;else{p.textContent=orig;anyFail=true;}
+    }catch{p.textContent=orig;anyFail=true;}
+  }
+  toast(anyFail?'⚠ Translation failed':'✅ Translated!',anyFail?'err':'ok');
+}
+
+/* ── OCR ── */
+function openOCR(){document.getElementById('ocr-modal').className='show';document.getElementById('ocr-result').style.display='none';document.getElementById('ocr-actions').style.display='none';}
+function closeOCR(){document.getElementById('ocr-modal').className='';document.getElementById('ocr-file').value='';}
+async function runOCR(input){
+  const file=input.files[0];if(!file)return;
+  const out=document.getElementById('ocr-result');
+  out.style.display='block';out.textContent='Scanning...';
+  const{data:{text}}=await Tesseract.recognize(file,'eng',{logger:m=>{if(m.status==='recognizing text')out.textContent='Scanning '+Math.round(m.progress*100)+'%';}});
+  ocrExtracted=text.trim();
+  out.textContent=ocrExtracted||'No text found. Try a clearer image.';
+  if(ocrExtracted)document.getElementById('ocr-actions').style.display='flex';
+}
+function sendOCRToSimplify(){if(!ocrExtracted)return;closeOCR();toast('OCR text ready — use Simplify');}
+function speakOCR(){if(ocrExtracted)speak(ocrExtracted.substring(0,600));}
+
+/* ── VOICE FAB ── */
+let vOn=false,vRecog=null;
+function toggleVoice(){
+  if(vOn){vOn=false;if(vRecog)vRecog.stop();document.getElementById('vfab').className='';return;}
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return;
+  vRecog=new SR();vRecog.lang='en-IN';vRecog.continuous=true;vRecog.interimResults=false;
+  vRecog.onstart=()=>{vOn=true;document.getElementById('vfab').className='on';};
+  vRecog.onresult=(e)=>{
+    const t=e.results[e.results.length-1][0].transcript.toLowerCase();
+    if(t.includes('next')||t.includes('complete'))  completeLess(cur);
+    else if(t.includes('back')||t.includes('previous')) loadLesson(Math.max(0,cur-1));
+    else if(t.includes('repeat')||t.includes('read')) readLesson();
+    else if(t.includes('simplify')) simplifyLesson();
+    else if(t.includes('restore'))  restoreLesson();
+    else if(t.includes('hindi'))    translateLesson('hi');
+    else if(t.includes('marathi'))  translateLesson('mr');
+    else if(t.includes('tamil'))    translateLesson('ta');
+    else if(t.includes('stop'))     window.speechSynthesis.cancel();
+    else if(t.includes('home'))     window.location.href='index.html';
+    else if(t.includes('scan')||t.includes('ocr')) openOCR();
+    else if(/option [1-4]|answer [1-4]/.test(t)){const n=parseInt(t.match(/[1-4]/)[0])-1;const btn=document.querySelectorAll('.qopt')[n];if(btn&&!btn.disabled)btn.click();}
+  };
+  vRecog.onend=()=>{vOn=false;document.getElementById('vfab').className='';};
+  vRecog.start();
+}
+
+/* ── OFFLINE ── */
+function checkOnline(){document.getElementById('offline-bar').className=navigator.onLine?'offline-bar':'offline-bar show';}
+
+/* ── INIT ── */
+window.addEventListener('load',()=>{
+  const p=localStorage.getItem('brainies_profile')||'standard';
+  ['blind','dyslexic','adhd','deaf','motor'].forEach(m=>document.body.classList.remove('mode-'+m));
+  if(p!=='standard')document.body.classList.add('mode-'+p);
+  if(p==='deaf')document.getElementById('caption-bar').style.display='flex';
+  if(localStorage.getItem('brainies_theme')==='light'){document.body.classList.add('light');document.getElementById('theme-btn').textContent='☀️';}
+  cur=parseInt(localStorage.getItem('brainies_curlss')||'0');
+  loadLesson(cur);
+  checkOnline();
+  window.addEventListener('online',checkOnline);
+  window.addEventListener('offline',checkOnline);
+  window.nextLesson=()=>completeLess(cur);
+  window.prevLesson=()=>loadLesson(Math.max(0,cur-1));
+  window.simplifyLesson=simplifyLesson;
+  window.translateLesson=translateLesson;
+});
+
+document.addEventListener('keydown',e=>{
+  if(e.altKey&&e.key==='r')readLesson();
+  if(e.altKey&&e.key==='ArrowRight')completeLess(cur);
+  if(e.altKey&&e.key==='ArrowLeft')loadLesson(Math.max(0,cur-1));
+  if(e.key==='Escape')closeOCR();
+});
+</script>
+</body>
+</html>
