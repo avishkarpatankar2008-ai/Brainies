@@ -199,7 +199,7 @@ nav a:hover,nav button:hover{border-color:var(--green);color:var(--green)}
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
 <script src="brainies-voice.js"></script>
 <script>
-const API = '';
+const API = 'http://localhost:5000';
 let cur = 0, originalContent = {}, ocrExtracted = '';
 
 /* ── QUIZ ANSWERS (secure — not in HTML) ── */
@@ -362,6 +362,13 @@ function loadLesson(i){
     </div>`;
   renderSidebar();
   window.scrollTo({top:0,behavior:'smooth'});
+  // Auto-speak for blind users
+  const _p = localStorage.getItem("brainies_profile");
+  if (_p === "blind") {
+    setTimeout(() => {
+      speak(LESSONS[i].title + ". Say read lesson to hear the content. Say read quiz to hear the question and all options.");
+    }, 600);
+  }
 }
 
 /* ── QUIZ CHECK ── */
@@ -373,19 +380,24 @@ function checkAns(btn,li,j){
   saveQuizScore(li,correct);
   if(correct){
     btn.classList.add('correct');
-    fb.className='quiz-fb show ok';fb.textContent='✅ Correct! '+ans.e;
-    speak('Correct! '+ans.e);toast('✅ Correct! +50 points','ok');
-    // Add points
+    fb.className='quiz-fb show ok';
+    fb.textContent='✅ Correct! '+ans.e;
+    // Speak full feedback + what to do next
+    speak('Correct! Well done! ' + ans.e + ' Say next lesson to continue.');
+    toast('✅ Correct! +50 points','ok');
     const pts=parseInt(localStorage.getItem('brainies_points')||'0');
     localStorage.setItem('brainies_points',(pts+50).toString());
   }else{
     btn.classList.add('wrong');
     document.querySelectorAll('.qopt')[ans.c].classList.add('correct');
-    fb.className='quiz-fb show err';fb.textContent='❌ Not quite. '+ans.e;
-    speak('Not quite. '+ans.e);toast('❌ Wrong answer','err');
+    fb.className='quiz-fb show err';
+    fb.textContent='❌ Not quite. '+ans.e;
+    // Tell blind user which was correct + what to do next
+    const correctText = document.querySelectorAll('.qopt')[ans.c].textContent.trim();
+    speak('Wrong answer. The correct answer was: ' + correctText + '. ' + ans.e + ' Say next lesson to continue, or say read quiz to try again.');
+    toast('❌ Wrong answer','err');
   }
   document.getElementById('qnext').className='quiz-next show';
-  // Update score badge live
   const badge=document.querySelector('.quiz-score-badge');
   if(badge)badge.textContent=correct?'✅ Correct':'❌ Missed';
 }
@@ -465,55 +477,238 @@ async function runOCR(input){
 function sendOCRToSimplify(){if(!ocrExtracted)return;closeOCR();toast('OCR text ready — use Simplify');}
 function speakOCR(){if(ocrExtracted)speak(ocrExtracted.substring(0,600));}
 
-/* ── VOICE FAB ── */
-let vOn=false,vRecog=null;
-function toggleVoice(){
-  if(vOn){vOn=false;if(vRecog)vRecog.stop();document.getElementById('vfab').className='';return;}
-  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR)return;
-  vRecog=new SR();vRecog.lang='en-IN';vRecog.continuous=true;vRecog.interimResults=false;
-  vRecog.onstart=()=>{vOn=true;document.getElementById('vfab').className='on';};
-  vRecog.onresult=(e)=>{
-    const t=e.results[e.results.length-1][0].transcript.toLowerCase();
-    if(t.includes('next')||t.includes('complete'))  completeLess(cur);
-    else if(t.includes('back')||t.includes('previous')) loadLesson(Math.max(0,cur-1));
-    else if(t.includes('repeat')||t.includes('read')) readLesson();
-    else if(t.includes('simplify')) simplifyLesson();
-    else if(t.includes('restore'))  restoreLesson();
-    else if(t.includes('hindi'))    translateLesson('hi');
-    else if(t.includes('marathi'))  translateLesson('mr');
-    else if(t.includes('tamil'))    translateLesson('ta');
-    else if(t.includes('stop'))     window.speechSynthesis.cancel();
-    else if(t.includes('home'))     window.location.href='index.html';
-    else if(t.includes('scan')||t.includes('ocr')) openOCR();
-    else if(/option [1-4]|answer [1-4]/.test(t)){const n=parseInt(t.match(/[1-4]/)[0])-1;const btn=document.querySelectorAll('.qopt')[n];if(btn&&!btn.disabled)btn.click();}
+/* ══════════════════════════════════════════════════
+   SPEAK QUIZ — reads question + all options aloud
+   Called automatically when lesson loads for blind users
+══════════════════════════════════════════════════ */
+function speakQuiz() {
+  const q = document.getElementById('quiz-q');
+  if (!q) return;
+  const opts = document.querySelectorAll('.qopt');
+  let msg = 'Quiz time. ' + q.textContent + ' The options are: ';
+  opts.forEach((o, i) => {
+    msg += 'Option ' + (i + 1) + ': ' + o.textContent.trim() + '. ';
+  });
+  msg += 'Say option 1, option 2, option 3, or option 4 to answer.';
+  speak(msg);
+}
+
+/* ══════════════════════════════════════════════════
+   ALWAYS-ON VOICE ENGINE
+   - Auto-restarts so it NEVER stops listening
+   - Reads quiz options aloud
+   - Accepts option 1/2/3/4, one/two/three/four,
+     first/second/third/fourth, A/B/C/D
+══════════════════════════════════════════════════ */
+let vRecog = null, vOn = false, vPaused = false, vRestartTimer = null;
+
+function startVoice() {
+  if (vPaused || vOn) return;
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return;
+
+  vRecog = new SR();
+  vRecog.lang = 'en-IN';
+  vRecog.continuous = false;    // false = cleaner auto-restart
+  vRecog.interimResults = false;
+  vRecog.maxAlternatives = 3;
+
+  vRecog.onstart = () => {
+    vOn = true;
+    document.getElementById('vfab').className = 'on';
   };
-  vRecog.onend=()=>{vOn=false;document.getElementById('vfab').className='';};
-  vRecog.start();
+
+  vRecog.onresult = (e) => {
+    // Collect all final transcripts
+    let txt = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) txt += e.results[i][0].transcript;
+    }
+    txt = txt.toLowerCase().trim();
+    if (txt) handleLessonVoice(txt);
+  };
+
+  vRecog.onerror = (e) => {
+    vOn = false;
+    // no-speech is normal — just restart quietly
+    if (e.error === 'not-allowed') { vPaused = true; return; }
+    scheduleVRestart(800);
+  };
+
+  vRecog.onend = () => {
+    vOn = false;
+    // KEY: auto-restart keeps voice ALWAYS on
+    scheduleVRestart(250);
+  };
+
+  try { vRecog.start(); } catch (e) { scheduleVRestart(1000); }
+}
+
+function scheduleVRestart(ms) {
+  clearTimeout(vRestartTimer);
+  vRestartTimer = setTimeout(() => { if (!vPaused) startVoice(); }, ms);
+}
+
+// Manual toggle button
+function toggleVoice() {
+  if (vPaused) {
+    vPaused = false;
+    startVoice();
+    speak('Voice on. I am listening.');
+  } else {
+    vPaused = true;
+    clearTimeout(vRestartTimer);
+    if (vRecog) { try { vRecog.stop(); } catch (e) {} }
+    vOn = false;
+    document.getElementById('vfab').className = '';
+    window.speechSynthesis.cancel();
+  }
+}
+
+/* ══════════════════════════════════════════════════
+   LESSON VOICE COMMAND HANDLER
+══════════════════════════════════════════════════ */
+function handleLessonVoice(t) {
+
+  // ── STOP speaking ──
+  if (/\b(stop|quiet|silence)\b/.test(t)) {
+    window.speechSynthesis.cancel(); return;
+  }
+
+  // ── READ LESSON ──
+  if (/\b(read|read lesson|read aloud|repeat lesson)\b/.test(t)) {
+    readLesson(); return;
+  }
+
+  // ── READ QUIZ / OPTIONS ──
+  if (/\b(quiz|read quiz|read options|what are the options|options|repeat quiz)\b/.test(t)) {
+    speakQuiz(); return;
+  }
+
+  // ── OPTION SELECTION ──
+  // Matches: "option 1", "answer 2", "choice 3"
+  //          "one","two","three","four"
+  //          "first","second","third","fourth"
+  //          "A","B","C","D"
+  //          "select 1", "pick 2"
+  const optMap = {
+    '1':0,'one':0,'first':0,'a':0,'option one':0,'answer one':0,
+    '2':1,'two':1,'second':1,'b':1,'option two':1,'answer two':1,
+    '3':2,'three':2,'third':2,'c':2,'option three':2,'answer three':2,
+    '4':3,'four':3,'fourth':3,'d':3,'option four':3,'answer four':3,
+  };
+
+  // Try full phrase matches first
+  for (const [phrase, idx] of Object.entries(optMap)) {
+    const re = new RegExp('\\b' + phrase + '\\b');
+    if (re.test(t)) {
+      const btns = document.querySelectorAll('.qopt');
+      if (!btns.length) { speak('No quiz on screen yet. Scroll down or say read quiz.'); return; }
+      if (btns[idx]) {
+        if (btns[idx].disabled) {
+          speak('You already answered this question. Say next lesson to continue.'); return;
+        }
+        btns[idx].click(); // triggers checkAns()
+        return;
+      }
+    }
+  }
+
+  // ── NEXT LESSON / COMPLETE ──
+  if (/\b(next|next lesson|complete|finish|done|mark done)\b/.test(t)) {
+    completeLess(cur); return;
+  }
+
+  // ── PREVIOUS ──
+  if (/\b(back|previous|prev|go back)\b/.test(t)) {
+    loadLesson(Math.max(0, cur - 1)); return;
+  }
+
+  // ── SIMPLIFY ──
+  if (/\b(simplify|make it simple|easy language)\b/.test(t)) {
+    simplifyLesson(); return;
+  }
+
+  // ── RESTORE ──
+  if (/\b(restore|original|undo)\b/.test(t)) {
+    restoreLesson(); return;
+  }
+
+  // ── TRANSLATE ──
+  if (t.includes('hindi'))   { translateLesson('hi'); return; }
+  if (t.includes('marathi')) { translateLesson('mr'); return; }
+  if (t.includes('tamil'))   { translateLesson('ta'); return; }
+  if (t.includes('telugu'))  { translateLesson('te'); return; }
+
+  // ── HOME ──
+  if (/\b(home|go home|main page)\b/.test(t)) {
+    speak('Going home.', () => { window.location.href = 'index.html'; }); return;
+  }
+
+  // ── SCAN / OCR ──
+  if (/\b(scan|ocr|camera)\b/.test(t)) { openOCR(); return; }
+
+  // ── HELP ──
+  if (/\b(help|what can i say|commands)\b/.test(t)) {
+    speak(
+      'Available commands: ' +
+      'Read lesson. Read quiz. ' +
+      'Option 1, option 2, option 3, or option 4 to answer the quiz. ' +
+      'Next lesson. Previous lesson. ' +
+      'Simplify. Translate Hindi. ' +
+      'Stop. Home. Help.'
+    ); return;
+  }
 }
 
 /* ── OFFLINE ── */
 function checkOnline(){document.getElementById('offline-bar').className=navigator.onLine?'offline-bar':'offline-bar show';}
 
-/* ── INIT ── */
+/* ══════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════ */
 window.addEventListener('load',()=>{
   const p=localStorage.getItem('brainies_profile')||'standard';
   ['blind','dyslexic','adhd','deaf','motor'].forEach(m=>document.body.classList.remove('mode-'+m));
   if(p!=='standard')document.body.classList.add('mode-'+p);
   if(p==='deaf')document.getElementById('caption-bar').style.display='flex';
   if(localStorage.getItem('brainies_theme')==='light'){document.body.classList.add('light');document.getElementById('theme-btn').textContent='☀️';}
+
   cur=parseInt(localStorage.getItem('brainies_curlss')||'0');
   loadLesson(cur);
   checkOnline();
   window.addEventListener('online',checkOnline);
   window.addEventListener('offline',checkOnline);
+
+  // Expose for brainies-voice.js
   window.nextLesson=()=>completeLess(cur);
   window.prevLesson=()=>loadLesson(Math.max(0,cur-1));
   window.simplifyLesson=simplifyLesson;
   window.translateLesson=translateLesson;
+  window.speakQuiz=speakQuiz;
+
+  // Auto-start always-on voice for ALL users
+  // Blind users especially need this without clicking anything
+  setTimeout(() => {
+    startVoice();
+    // For blind users: speak lesson title + instructions after load
+    if (p === 'blind') {
+      setTimeout(() => {
+        const title = document.querySelector('.lesson-title');
+        speak(
+          'Lesson page loaded. ' +
+          (title ? title.textContent + '. ' : '') +
+          'Say read lesson to hear the content. Say read quiz to hear the quiz question and options. ' +
+          'Say help for all commands.'
+        );
+      }, 800);
+    }
+  }, 400);
 });
 
 document.addEventListener('keydown',e=>{
   if(e.altKey&&e.key==='r')readLesson();
+  if(e.altKey&&e.key==='q')speakQuiz();
   if(e.altKey&&e.key==='ArrowRight')completeLess(cur);
   if(e.altKey&&e.key==='ArrowLeft')loadLesson(Math.max(0,cur-1));
   if(e.key==='Escape')closeOCR();
