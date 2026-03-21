@@ -448,7 +448,7 @@ function toggleNameMic() {
     if (e.results[e.results.length - 1].isFinal) {
       nameRecogOn = false;
       document.getElementById('name-mic').className = 'name-mic';
-      speak('Name set to ' + cap + '. Now say your condition — blind, dyslexic, ADHD, deaf, motor, or standard.');
+      if (prof && prof !== '') { speak('Name set to ' + cap + '. Entering Brainies now.', enter); } else { speak('Name set to ' + cap + '. Now say your condition — blind, dyslexic, ADHD, deaf, motor, or standard.'); }
     }
   };
   nameRecog.onend = () => { nameRecogOn = false; document.getElementById('name-mic').className = 'name-mic'; };
@@ -485,7 +485,12 @@ function onCommand(txt) {
       const cap = raw.replace(/\b\w/g, c => c.toUpperCase());
       document.getElementById('uname').value = cap;
       onName();
-      speak('Name set to ' + cap + '. Now say your condition — blind, dyslexic, ADHD, deaf, motor, or standard.');
+      // If profile already chosen → auto-enter immediately (no extra step needed)
+      if (prof && prof !== '') {
+        speak('Name set to ' + cap + '. ' + prof + ' profile already selected. Entering Brainies now.', enter);
+      } else {
+        speak('Name set to ' + cap + '. Now say your condition — blind, dyslexic, ADHD, deaf, motor, or standard.');
+      }
       return;
     }
   }
@@ -498,7 +503,8 @@ function onCommand(txt) {
       document.getElementById('blind-hero').className = p === 'blind' ? 'blind-hero show' : 'blind-hero';
       const name = document.getElementById('uname').value.trim();
       if (name) {
-        speak(p + ' profile selected. Say enter to start the app.');
+        // Name already filled → auto-enter immediately, no extra "say enter" step
+        speak(p + ' profile selected. Welcome ' + name + '! Entering Brainies now.', enter);
       } else {
         speak(p + ' profile selected. Now say your name. For example: my name is Priya.');
       }
