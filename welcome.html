@@ -8,173 +8,114 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700&family=Sora:wght@700;800&display=swap" rel="stylesheet"/>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-
-/* ── THEME ── */
 :root{
   --bg:#0b0d0f;--bg2:#141618;--bg3:#1e2124;
   --border:#2c2f33;--border2:#3d4247;
   --text:#f0f2f4;--text2:#8b949e;
   --green:#3ddc84;--green-dim:rgba(61,220,132,.12);
-  --shadow:0 4px 24px rgba(0,0,0,.5);
-  --radius:14px;
+  --shadow:0 4px 24px rgba(0,0,0,.5);--radius:14px;
 }
-body.light{
-  --bg:#f4f6f8;--bg2:#ffffff;--bg3:#edf0f3;
-  --border:#dde1e7;--border2:#bcc3cc;
-  --text:#1a1d21;--text2:#596475;
-  --green:#1a9e56;--green-dim:rgba(26,158,86,.10);
-  --shadow:0 4px 24px rgba(0,0,0,.10);
-}
+body.light{--bg:#f4f6f8;--bg2:#fff;--bg3:#edf0f3;--border:#dde1e7;--border2:#bcc3cc;--text:#1a1d21;--text2:#596475;--green:#1a9e56;--green-dim:rgba(26,158,86,.10);--shadow:0 4px 24px rgba(0,0,0,.10);}
+body.mode-blind{--bg:#000;--bg2:#111;--bg3:#1a1a1a;--border:#555;--border2:#888;--text:#fff;--text2:#ddd;font-size:20px!important;}
+body.mode-blind button,body.mode-blind input{outline:3px solid #fff!important;outline-offset:4px;}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:1.25rem;transition:background .25s,color .25s;}
 
-body{
-  font-family:'DM Sans',sans-serif;
-  background:var(--bg);color:var(--text);
-  min-height:100vh;display:flex;align-items:center;
-  justify-content:center;padding:1.25rem;
-  transition:background .25s,color .25s;
+/* ── ALWAYS-ON VOICE BAR (top of screen) ── */
+.voice-bar{
+  position:fixed;top:0;left:0;right:0;
+  background:#0a1628;border-bottom:2px solid var(--green);
+  padding:.55rem 1.25rem;font-size:.85rem;color:var(--green);
+  z-index:9999;display:none;align-items:center;gap:.75rem;
 }
+.voice-bar.show{display:flex}
+.vb-dot{width:10px;height:10px;border-radius:50%;background:var(--green);flex-shrink:0;animation:vbpulse 1s ease infinite}
+@keyframes vbpulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.75)}}
+.vb-label{font-weight:700;letter-spacing:.03em}
+.vb-heard{flex:1;font-style:italic;color:#93c5fd;font-size:.78rem;margin-left:.5rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 
-/* ── CARD ── */
-.card{
-  background:var(--bg2);border:1px solid var(--border);
-  border-radius:var(--radius);padding:2.25rem;
-  width:min(520px,100%);box-shadow:var(--shadow);
-  position:relative;
-}
-
-/* ── THEME TOGGLE ── */
-.theme-btn{
-  position:absolute;top:1.25rem;right:1.25rem;
-  width:36px;height:36px;border-radius:50%;
-  border:1px solid var(--border2);background:var(--bg3);
-  color:var(--text2);cursor:pointer;font-size:.9rem;
-  display:flex;align-items:center;justify-content:center;
-  transition:border-color .2s,background .2s;
-}
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:2.25rem;width:min(520px,100%);box-shadow:var(--shadow);position:relative;margin-top:3rem;}
+.theme-btn{position:absolute;top:1.25rem;right:1.25rem;width:36px;height:36px;border-radius:50%;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);cursor:pointer;font-size:.9rem;display:flex;align-items:center;justify-content:center;transition:all .2s;}
 .theme-btn:hover{border-color:var(--green);background:var(--green-dim);}
-
-/* ── LOGO ── */
 .logo{display:flex;align-items:center;gap:.7rem;margin-bottom:.25rem}
 .logo-icon{font-size:1.75rem;line-height:1}
 .logo-text{font-family:'Sora',sans-serif;font-size:1.55rem;color:var(--green)}
-.tagline{font-size:.82rem;color:var(--text2);margin-bottom:2rem}
+.tagline{font-size:.82rem;color:var(--text2);margin-bottom:1.5rem}
 
-/* ── OFFLINE BANNER ── */
-.offline-banner{
-  display:none;background:rgba(251,191,36,.1);
-  border:1px solid rgba(251,191,36,.3);border-radius:8px;
-  padding:.6rem .9rem;font-size:.8rem;color:#fbbf24;
-  margin-bottom:1rem;
-}
-.offline-banner.show{display:block}
+/* ── BLIND GUIDE BOX ── */
+.blind-guide{display:none;background:rgba(61,220,132,.08);border:2px solid var(--green);border-radius:10px;padding:1rem 1.1rem;margin-bottom:1.25rem;font-size:.88rem;line-height:1.75;color:var(--text);}
+.blind-guide.show{display:block}
+.blind-guide strong{color:var(--green);display:block;margin-bottom:.3rem;font-size:.95rem}
+.blind-guide em{color:#93c5fd;font-style:normal;font-weight:600}
 
-/* ── MIC SECTION ── */
+/* ── MIC ── */
 .mic-area{text-align:center;margin-bottom:.75rem}
-.mic{
-  width:72px;height:72px;border-radius:50%;
-  background:var(--bg3);border:2px solid var(--border2);
-  font-size:1.9rem;cursor:pointer;
-  display:inline-flex;align-items:center;justify-content:center;
-  transition:all .2s;
-}
+.mic{width:80px;height:80px;border-radius:50%;background:var(--bg3);border:2px solid var(--border2);font-size:2rem;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:all .2s;}
 .mic:hover{border-color:var(--green);background:var(--green-dim);}
 .mic.on{border-color:var(--green);background:var(--green-dim);animation:ring 1.5s ease infinite}
 .mic.err{border-color:#f87171;background:rgba(248,113,113,.1)}
-@keyframes ring{
-  0%,100%{box-shadow:0 0 0 0 rgba(61,220,132,.35)}
-  60%{box-shadow:0 0 0 12px rgba(61,220,132,0)}
-}
-.mic-msg{font-size:.78rem;margin-top:.5rem;min-height:1.1rem;color:var(--text2)}
+@keyframes ring{0%,100%{box-shadow:0 0 0 0 rgba(61,220,132,.35)}60%{box-shadow:0 0 0 14px rgba(61,220,132,0)}}
+.mic-msg{font-size:.82rem;margin-top:.5rem;min-height:1.1rem;color:var(--text2)}
 .mic-msg.live{color:var(--green)}.mic-msg.err{color:#f87171}
-
-/* ── HEARD TEXT ── */
-.heard{
-  display:none;background:var(--bg3);border:1px solid var(--border);
-  border-radius:8px;padding:.55rem .8rem;font-size:.83rem;
-  color:var(--text2);font-style:italic;margin:.6rem 0 .9rem;
-}
+.heard{display:none;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:.6rem .9rem;font-size:.88rem;color:var(--text2);font-style:italic;margin:.6rem 0 .9rem;min-height:2.5rem;}
 .heard.show{display:block}
-
-/* ── MIC BLOCKED ── */
-.mic-blocked{
-  display:none;background:rgba(248,113,113,.08);
-  border:1px solid rgba(248,113,113,.3);border-radius:8px;
-  padding:.75rem 1rem;font-size:.8rem;color:#f87171;
-  margin-bottom:.75rem;line-height:1.55;
-}
+.mic-blocked{display:none;background:rgba(248,113,113,.08);border:1px solid rgba(248,113,113,.3);border-radius:8px;padding:.75rem 1rem;font-size:.8rem;color:#f87171;margin-bottom:.75rem;line-height:1.55;}
 .mic-blocked.show{display:block}
 .mic-blocked strong{display:block;margin-bottom:.25rem}
 
-/* ── HINT CHIPS ── */
+/* ── HINTS ── */
 .hints{display:flex;flex-wrap:wrap;gap:.3rem;margin-bottom:1.25rem}
-.hint{
-  font-size:.67rem;padding:.18rem .5rem;border-radius:20px;
-  background:var(--green-dim);border:1px solid rgba(61,220,132,.25);
-  color:var(--green);
-}
+.hint{font-size:.67rem;padding:.18rem .5rem;border-radius:20px;background:var(--green-dim);border:1px solid rgba(61,220,132,.25);color:var(--green);}
 
-/* ── SEPARATOR ── */
+/* ── SEP ── */
 .sep{display:flex;align-items:center;gap:.6rem;margin:.9rem 0}
 .sep hr{flex:1;border:none;border-top:1px solid var(--border)}
 .sep span{font-size:.72rem;color:var(--text2)}
 
 /* ── FORM ── */
-.field-label{display:block;font-size:.78rem;color:var(--text2);margin-bottom:.3rem;font-weight:600}
+.field-label{display:block;font-size:.82rem;color:var(--text2);margin-bottom:.3rem;font-weight:600}
 .field-label span{color:#f87171}
-input[type=text]{
-  width:100%;padding:.7rem .9rem;background:var(--bg3);
-  border:1px solid var(--border2);border-radius:9px;
-  color:var(--text);font-size:.92rem;margin-bottom:.25rem;
-  outline:none;font-family:'DM Sans',sans-serif;transition:border-color .2s;
-}
+input[type=text]{width:100%;padding:.75rem .9rem;background:var(--bg3);border:1px solid var(--border2);border-radius:9px;color:var(--text);font-size:.95rem;margin-bottom:.25rem;outline:none;font-family:'DM Sans',sans-serif;transition:border-color .2s;}
 input[type=text]:focus{border-color:var(--green)}
 input[type=text]::placeholder{color:var(--text2);opacity:.6}
 input.err-field{border-color:#f87171}
 .field-err{font-size:.73rem;color:#f87171;margin-bottom:.85rem;display:none}
 .field-err.show{display:block}
 
-/* ── PROFILE GRID ── */
-.profile-lbl{font-size:.78rem;color:var(--text2);font-weight:600;margin-bottom:.6rem;display:block}
+/* ── PROFILES ── */
+.profile-lbl{font-size:.82rem;color:var(--text2);font-weight:600;margin-bottom:.6rem;display:block}
 .pgrid{display:grid;grid-template-columns:repeat(3,1fr);gap:.55rem;margin-bottom:1.4rem}
-.pb{
-  padding:.8rem .4rem;border:1.5px solid var(--border);
-  border-radius:10px;background:var(--bg3);color:var(--text2);
-  cursor:pointer;font-size:.75rem;text-align:center;
-  font-family:'DM Sans',sans-serif;transition:all .2s;
-}
+.pb{padding:.85rem .4rem;border:1.5px solid var(--border);border-radius:10px;background:var(--bg3);color:var(--text2);cursor:pointer;font-size:.78rem;text-align:center;font-family:'DM Sans',sans-serif;transition:all .2s;}
 .pb:hover{border-color:var(--green);background:var(--green-dim);}
 .pb.sel{border-color:var(--green);background:var(--green-dim);color:var(--green);font-weight:700}
 .pb .ic{font-size:1.3rem;display:block;margin-bottom:.25rem}
 
 /* ── GO BUTTON ── */
-.go{
-  width:100%;padding:.85rem;background:var(--green);color:#000;
-  font-size:.95rem;font-weight:700;border:none;border-radius:10px;
-  cursor:pointer;font-family:'Sora',sans-serif;
-  transition:background .18s,transform .1s;
-  display:flex;align-items:center;justify-content:center;gap:.5rem;
-}
+.go{width:100%;padding:.9rem;background:var(--green);color:#000;font-size:.95rem;font-weight:700;border:none;border-radius:10px;cursor:pointer;font-family:'Sora',sans-serif;transition:background .18s,transform .1s;display:flex;align-items:center;justify-content:center;gap:.5rem;}
 .go:hover{background:#2ec870;transform:translateY(-1px)}
 .go:active{transform:translateY(0)}
 .go:disabled{background:var(--bg3);color:var(--text2);cursor:not-allowed;transform:none}
-.spin{
-  display:none;width:16px;height:16px;
-  border:2px solid rgba(0,0,0,.2);border-top-color:#000;
-  border-radius:50%;animation:sp .6s linear infinite;
-}
+.spin{display:none;width:16px;height:16px;border:2px solid rgba(0,0,0,.2);border-top-color:#000;border-radius:50%;animation:sp .6s linear infinite;}
 @keyframes sp{to{transform:rotate(360deg)}}
 
-/* ── FONT SIZE CONTROLS (accessibility) ── */
+/* ── A11Y ROW ── */
 .a11y-row{display:flex;gap:.5rem;margin-bottom:1rem}
-.a11y-btn{
-  flex:1;padding:.5rem;border-radius:8px;border:1px solid var(--border);
-  background:var(--bg3);color:var(--text2);cursor:pointer;
-  font-family:'DM Sans',sans-serif;font-size:.8rem;transition:all .2s;
-}
+.a11y-btn{flex:1;padding:.5rem;border-radius:8px;border:1px solid var(--border);background:var(--bg3);color:var(--text2);cursor:pointer;font-family:'DM Sans',sans-serif;font-size:.8rem;transition:all .2s;}
 .a11y-btn:hover{border-color:var(--green);color:var(--green)}
+
+/* ── OFFLINE ── */
+.offline-banner{display:none;background:rgba(251,191,36,.1);border:1px solid rgba(251,191,36,.3);border-radius:8px;padding:.6rem .9rem;font-size:.8rem;color:#fbbf24;margin-bottom:1rem;}
+.offline-banner.show{display:block}
 </style>
 </head>
 <body>
+
+<!-- ALWAYS-ON VOICE STATUS BAR — shows when blind mode active -->
+<div class="voice-bar" id="voice-bar">
+  <div class="vb-dot"></div>
+  <span class="vb-label">🎙️ Voice always ON</span>
+  <span class="vb-heard" id="vb-heard">I'm listening…</span>
+</div>
+
 <div class="card">
   <button class="theme-btn" id="theme-btn" onclick="toggleTheme()" title="Toggle dark/light mode">🌙</button>
 
@@ -184,34 +125,41 @@ input.err-field{border-color:#f87171}
   </div>
   <p class="tagline">Adaptive learning for every student &middot; Datathon 2026</p>
 
-  <!-- Offline notice -->
   <div class="offline-banner" id="offline-banner">
-    📴 You're offline — but you can still sign in and learn cached lessons!
+    📴 You're offline — you can still sign in and learn cached lessons!
   </div>
 
-  <!-- Mic -->
+  <!-- BLIND USER GUIDE — shown when blind profile selected -->
+  <div class="blind-guide" id="blind-guide">
+    <strong>👁️ Blind Mode — Voice is Always On, speak anytime</strong>
+    Say: <em>"my name is [name] blind"</em> — sets name + profile together.<br/>
+    Or say <em>"blind"</em> first, then <em>"my name is [name]"</em> separately.<br/>
+    Say <em>"help"</em> anytime to hear instructions again.<br/>
+    Say <em>"enter"</em> or <em>"go"</em> to start learning. 🎙️
+  </div>
+
+  <!-- MIC BUTTON -->
   <div class="mic-area">
     <button class="mic" id="mic" onclick="toggleMic()" aria-label="Toggle voice input">🎙️</button>
     <div class="mic-msg" id="msg">Click mic to use voice — or fill the form below</div>
   </div>
-  <div class="heard" id="heard" aria-live="polite"></div>
+  <div class="heard" id="heard" aria-live="polite" aria-label="Voice transcript"></div>
   <div class="mic-blocked" id="mic-blocked">
     <strong>🔒 Microphone blocked</strong>
-    Click the 🔒 icon in your browser address bar → Site settings → Microphone → Allow. Then refresh. Or just use the form below.
+    Click the 🔒 icon in your browser address bar → Microphone → Allow. Then refresh.
   </div>
 
   <div class="hints">
-    <span class="hint">say "blind"</span>
+    <span class="hint">say "my name is Priya blind"</span>
     <span class="hint">say "dyslexic"</span>
     <span class="hint">say "ADHD"</span>
     <span class="hint">say "deaf"</span>
     <span class="hint">say "motor"</span>
-    <span class="hint">say "standard"</span>
+    <span class="hint">say "help"</span>
   </div>
 
-  <div class="sep"><hr/><span>or fill below</span><hr/></div>
+  <div class="sep"><hr/><span>or fill the form below</span><hr/></div>
 
-  <!-- Accessibility font size controls -->
   <div class="a11y-row">
     <button class="a11y-btn" onclick="changeFontSize(2)">A+ Bigger Text</button>
     <button class="a11y-btn" onclick="changeFontSize(-2)">A− Smaller Text</button>
@@ -220,7 +168,7 @@ input.err-field{border-color:#f87171}
   <label class="field-label" for="uname">Your name <span>*</span></label>
   <input type="text" id="uname" placeholder="e.g. Priya Sharma"
          oninput="onName()" autocomplete="name" aria-required="true"/>
-  <div class="field-err" id="name-err">Please enter your name to continue.</div>
+  <div class="field-err" id="name-err" role="alert">Please enter your name to continue.</div>
 
   <span class="profile-lbl">Your accessibility profile</span>
   <div class="pgrid" role="group" aria-label="Select accessibility profile">
@@ -232,7 +180,7 @@ input.err-field{border-color:#f87171}
     <button class="pb" data-p="standard" onclick="pick(this)" id="std-btn" aria-pressed="true"><span class="ic">✨</span>Standard</button>
   </div>
 
-  <button class="go" id="go-btn" onclick="enter()" disabled>
+  <button class="go" id="go-btn" onclick="enter()" disabled aria-label="Enter Brainies">
     <span id="go-txt">Enter Brainies →</span>
     <span class="spin" id="spin"></span>
   </button>
@@ -240,121 +188,252 @@ input.err-field{border-color:#f87171}
 
 <script>
 const API = '';
-let prof = 'standard', micOn = false, recog = null;
-let sq = [], spkBusy = false;
-let fs = 16;
+let prof = 'standard', fs = 16;
+let alwaysOn = false; // true for blind users — voice never turns off
 
-/* ── SPEAK ── */
-function speak(t, cb) {
-  if (!('speechSynthesis' in window)) { if (cb) cb(); return; }
-  sq.push({ t, cb });
-  if (!spkBusy) drain();
+/* ══════════════════════════════════════════
+   SPEECH SYNTHESIS — queued, never overlaps
+══════════════════════════════════════════ */
+let sq = [], spkBusy = false;
+function speak(text, callback) {
+  if (!('speechSynthesis' in window)) { if (callback) callback(); return; }
+  sq.push({ text, callback });
+  if (!spkBusy) _drainQueue();
 }
-function drain() {
+function _drainQueue() {
   if (!sq.length) { spkBusy = false; return; }
   spkBusy = true;
-  const { t, cb } = sq.shift();
+  const { text, callback } = sq.shift();
   window.speechSynthesis.cancel();
-  const u = new SpeechSynthesisUtterance(t);
-  u.lang = 'en-IN'; u.rate = 0.9;
-  u.onend = u.onerror = () => { spkBusy = false; if (cb) cb(); drain(); };
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-IN'; u.rate = 0.88; u.volume = 1;
+  u.onend = u.onerror = () => {
+    spkBusy = false;
+    if (callback) callback();
+    _drainQueue();
+  };
   window.speechSynthesis.speak(u);
 }
+function stopSpeaking() { sq = []; spkBusy = false; window.speechSynthesis.cancel(); }
 
-/* ── FONT SIZE ── */
-function changeFontSize(delta) {
-  fs = Math.max(12, Math.min(26, fs + delta));
-  document.documentElement.style.fontSize = fs + 'px';
-}
+/* ══════════════════════════════════════════
+   ALWAYS-ON VOICE ENGINE
+   Restarts automatically — blind users
+   never need to click anything
+══════════════════════════════════════════ */
+let recog = null, micActive = false, restartTimer = null;
 
-/* ── DARK/LIGHT THEME ── */
-function toggleTheme() {
-  const light = document.body.classList.toggle('light');
-  document.getElementById('theme-btn').textContent = light ? '🌙' : '☀️';
-  localStorage.setItem('brainies_theme', light ? 'light' : 'dark');
-}
-
-/* ── MIC ── */
-function toggleMic() { micOn ? stopMic() : startMic(); }
-function startMic() {
+function startVoice() {
+  if (micActive) return;
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) { setMsg('Voice needs Chrome browser', 'err'); return; }
+
   recog = new SR();
-  recog.lang = 'en-IN'; recog.continuous = true; recog.interimResults = true;
+  recog.lang = 'en-IN';
+  recog.continuous = true;
+  recog.interimResults = true;
+  recog.maxAlternatives = 3;
+
   recog.onstart = () => {
-    micOn = true;
+    micActive = true;
     document.getElementById('mic').className = 'mic on';
-    setMsg('Listening — say your condition...', 'live');
+    setMsg('🎙️ Listening — say your name and profile', 'live');
     document.getElementById('heard').className = 'heard show';
   };
+
   recog.onresult = (e) => {
-    let txt = '';
-    for (let i = e.resultIndex; i < e.results.length; i++) txt += e.results[i][0].transcript;
-    document.getElementById('heard').textContent = txt;
-    if (e.results[e.results.length - 1].isFinal) voiceMatch(txt.toLowerCase());
+    let interim = '', final = '';
+    for (let i = e.resultIndex; i < e.results.length; i++) {
+      if (e.results[i].isFinal) final += e.results[i][0].transcript;
+      else interim += e.results[i][0].transcript;
+    }
+    const display = (final || interim).trim();
+    document.getElementById('heard').textContent = display;
+    document.getElementById('vb-heard').textContent = display || 'I\'m listening…';
+    if (final) handleVoiceCommand(final.toLowerCase().trim());
   };
+
   recog.onerror = (e) => {
-    micOn = false;
+    micActive = false;
     if (e.error === 'not-allowed') {
       document.getElementById('mic').className = 'mic err';
       document.getElementById('mic-blocked').className = 'mic-blocked show';
       setMsg('Microphone blocked — see instructions above', 'err');
-    } else { setMsg('Mic error — click to try again', ''); }
-    document.getElementById('mic').className = 'mic' + (e.error === 'not-allowed' ? ' err' : '');
+      alwaysOn = false;
+      document.getElementById('voice-bar').className = 'voice-bar';
+      return;
+    }
+    // All other errors — restart if alwaysOn
+    if (alwaysOn) scheduleRestart(1500);
+    else { document.getElementById('mic').className = 'mic'; setMsg('Mic error — click to retry', ''); }
   };
+
   recog.onend = () => {
-    micOn = false;
+    micActive = false;
     document.getElementById('mic').className = 'mic';
+    // KEY FEATURE: auto-restart for blind users — voice never stops
+    if (alwaysOn) scheduleRestart(600);
+    else setMsg('Click mic to restart', '');
   };
-  recog.start();
-}
-function stopMic() {
-  micOn = false;
-  try { recog && recog.stop(); } catch (e) {}
-  document.getElementById('mic').className = 'mic';
-  setMsg('Mic off. Click to restart.', '');
-}
-function setMsg(m, cls) {
-  const el = document.getElementById('msg');
-  el.textContent = m;
-  el.className = 'mic-msg' + (cls ? ' ' + cls : '');
+
+  try { recog.start(); }
+  catch (e) { if (alwaysOn) scheduleRestart(2000); }
 }
 
-const PMAP = {
+function scheduleRestart(ms) {
+  clearTimeout(restartTimer);
+  restartTimer = setTimeout(() => {
+    if (alwaysOn && !micActive) startVoice();
+  }, ms);
+}
+
+function stopVoice() {
+  alwaysOn = false;
+  micActive = false;
+  clearTimeout(restartTimer);
+  try { recog && recog.stop(); } catch (e) {}
+  document.getElementById('mic').className = 'mic';
+  document.getElementById('voice-bar').className = 'voice-bar';
+  setMsg('Mic off. Click to restart.', '');
+}
+
+function toggleMic() {
+  if (alwaysOn || micActive) {
+    stopVoice();
+    speak('Voice off.');
+  } else {
+    speak('Voice on.', startVoice);
+  }
+}
+
+/* ══════════════════════════════════════════
+   VOICE COMMAND HANDLER
+══════════════════════════════════════════ */
+const PROFILES = {
   blind:    ['blind', 'visually impaired', 'cannot see', 'low vision'],
-  dyslexic: ['dyslexic', 'dyslexia', 'reading'],
-  adhd:     ['adhd', 'a d h d', 'attention', 'hyperactive', 'focus'],
-  deaf:     ['deaf', 'hearing', 'cannot hear', 'hard of hearing'],
-  motor:    ['motor', 'physical', 'cannot use hands'],
+  dyslexic: ['dyslexic', 'dyslexia', 'reading difficulty'],
+  adhd:     ['adhd', 'attention', 'hyperactive', 'focus problem'],
+  deaf:     ['deaf', 'hearing loss', 'cannot hear', 'hard of hearing'],
+  motor:    ['motor', 'physical', 'cannot use hands', 'motor impaired'],
   standard: ['standard', 'normal', 'none', 'skip', 'regular']
 };
 
-function voiceMatch(txt) {
-  for (const [p, words] of Object.entries(PMAP)) {
-    if (words.some(w => txt.includes(w))) {
-      stopMic();
-      pick(document.querySelector(`.pb[data-p="${p}"]`));
-      const nm = txt.match(/(?:my name is|i am|i'm|call me)\s+([a-z][a-z ]{1,20}?)(?:\s+(?:blind|dyslexic|adhd|deaf|motor|standard)|\.?$)/i);
-      if (nm) {
-        const cap = nm[1].trim().replace(/\b\w/g, c => c.toUpperCase());
-        document.getElementById('uname').value = cap;
-        onName();
+function handleVoiceCommand(txt) {
+  /* STOP SPEAKING */
+  if (txt.includes('stop') || txt.includes('quiet') || txt.includes('silence')) {
+    stopSpeaking(); return;
+  }
+
+  /* HELP */
+  if (txt.includes('help') || txt.includes('what can') || txt.includes('instructions')) {
+    const name = document.getElementById('uname').value.trim();
+    speak(
+      'To set up your profile by voice, say: my name is, followed by your name, then your condition. ' +
+      'For example: my name is Priya, blind. ' +
+      'Current name is ' + (name || 'not set') + '. ' +
+      'Current profile is ' + prof + '. ' +
+      'Say enter or go when ready.'
+    );
+    return;
+  }
+
+  /* ENTER / GO */
+  if (txt.includes('enter') || txt.includes('go') || txt.includes('start') || txt.includes('continue') || txt.includes('next')) {
+    const name = document.getElementById('uname').value.trim();
+    if (!name) {
+      speak('Please say your name first. Say: my name is, followed by your name.');
+    } else {
+      speak('Entering Brainies now. Welcome ' + name + '.', enter);
+    }
+    return;
+  }
+
+  /* NAME DETECTION — works in many formats */
+  // "my name is Priya blind", "I am Priya", "call me Priya", "name is Priya"
+  const nameRegex = /(?:my name is|i am|i'm|call me|name is|name)\s+([a-z][a-z ]{0,25}?)(?:\s*[,.]?\s*(blind|dyslexic|adhd|deaf|motor|standard))?(?:\s|$)/i;
+  const nameMatch = txt.match(nameRegex);
+  if (nameMatch) {
+    // Make sure matched name isn't a profile word alone
+    const rawName = nameMatch[1].trim();
+    const isProfileWord = Object.keys(PROFILES).includes(rawName.toLowerCase());
+    if (!isProfileWord && rawName.length > 1) {
+      const name = rawName.replace(/\b\w/g, c => c.toUpperCase());
+      setName(name);
+      const profileInSentence = nameMatch[2];
+      if (profileInSentence) {
+        applyProfile(profileInSentence.toLowerCase());
+        if (profileInSentence.toLowerCase() === 'blind') {
+          speak('Name set to ' + name + '. Blind profile selected. Entering Brainies now.', enter);
+        } else {
+          speak('Name set to ' + name + '. ' + profileInSentence + ' profile selected. Entering Brainies now.', enter);
+        }
+      } else {
+        speak('Name set to ' + name + '. Now say your profile: blind, dyslexic, ADHD, deaf, motor, or standard.');
       }
-      speak(p + ' profile selected. Entering Brainies now.', enter);
       return;
+    }
+  }
+
+  /* PROFILE DETECTION */
+  for (const [p, words] of Object.entries(PROFILES)) {
+    if (words.some(w => txt.includes(w))) {
+      applyProfile(p);
+      const name = document.getElementById('uname').value.trim();
+      if (p === 'blind') {
+        if (name) {
+          speak('Blind profile. Name is ' + name + '. Entering Brainies now.', enter);
+        } else {
+          speak('Blind profile selected. My voice will stay on always. Now say: my name is, followed by your name.');
+        }
+      } else {
+        if (name) {
+          speak(p + ' profile. Entering now.', enter);
+        } else {
+          speak(p + ' profile selected. Please say your name, or type it.');
+        }
+      }
+      return;
+    }
+  }
+}
+
+/* ══════════════════════════════════════════
+   PROFILE & NAME HELPERS
+══════════════════════════════════════════ */
+function applyProfile(p) {
+  prof = p;
+  // Update button visuals
+  document.querySelectorAll('.pb').forEach(b => {
+    b.classList.toggle('sel', b.dataset.p === p);
+    b.setAttribute('aria-pressed', b.dataset.p === p ? 'true' : 'false');
+  });
+  // Blind mode — high contrast + always-on voice
+  if (p === 'blind') {
+    document.body.classList.add('mode-blind');
+    document.getElementById('blind-guide').className = 'blind-guide show';
+    document.getElementById('voice-bar').className = 'voice-bar show';
+    // Activate always-on voice
+    alwaysOn = true;
+    if (!micActive) startVoice();
+  } else {
+    document.body.classList.remove('mode-blind');
+    document.getElementById('blind-guide').className = 'blind-guide';
+    if (alwaysOn) {
+      alwaysOn = false; // turn off always-on if switching away from blind
+      document.getElementById('voice-bar').className = 'voice-bar';
     }
   }
 }
 
 function pick(btn) {
   if (!btn) return;
-  prof = btn.dataset.p;
-  document.querySelectorAll('.pb').forEach(b => {
-    b.classList.remove('sel');
-    b.setAttribute('aria-pressed', 'false');
-  });
-  btn.classList.add('sel');
-  btn.setAttribute('aria-pressed', 'true');
+  applyProfile(btn.dataset.p);
+  if (btn.dataset.p !== 'blind') speak(btn.dataset.p + ' profile selected.');
+}
+
+function setName(name) {
+  document.getElementById('uname').value = name;
+  onName();
 }
 
 function onName() {
@@ -363,12 +442,35 @@ function onName() {
   document.getElementById('go-btn').disabled = !document.getElementById('uname').value.trim();
 }
 
+function setMsg(m, cls) {
+  const el = document.getElementById('msg');
+  el.textContent = m;
+  el.className = 'mic-msg' + (cls ? ' ' + cls : '');
+}
+
+function changeFontSize(delta) {
+  fs = Math.max(12, Math.min(26, fs + delta));
+  document.documentElement.style.fontSize = fs + 'px';
+}
+
+function toggleTheme() {
+  const light = document.body.classList.toggle('light');
+  document.getElementById('theme-btn').textContent = light ? '☀️' : '🌙';
+  localStorage.setItem('brainies_theme', light ? 'light' : 'dark');
+}
+
+function checkOnline() {
+  document.getElementById('offline-banner').className =
+    navigator.onLine ? 'offline-banner' : 'offline-banner show';
+}
+
 async function enter() {
   const name = document.getElementById('uname').value.trim();
   if (!name) {
     document.getElementById('uname').classList.add('err-field');
     document.getElementById('name-err').className = 'field-err show';
-    document.getElementById('uname').focus();
+    if (alwaysOn) speak('Name is required. Say: my name is, followed by your name.');
+    else document.getElementById('uname').focus();
     return;
   }
   document.getElementById('go-txt').textContent = 'Entering...';
@@ -378,50 +480,55 @@ async function enter() {
   localStorage.setItem('brainies_profile', prof);
   localStorage.setItem('brainies_name', name);
   localStorage.setItem('brainies_sid', sid);
+  // Save whether always-on voice should stay active
+  localStorage.setItem('brainies_always_voice', prof === 'blind' ? '1' : '0');
   try {
     await fetch(API + '/save-profile', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ student_id: sid, profile: prof, name })
     });
   } catch (e) {}
   window.location.href = 'index.html';
 }
 
-/* ── OFFLINE DETECTION ── */
-function checkOnline() {
-  document.getElementById('offline-banner').className =
-    navigator.onLine ? 'offline-banner' : 'offline-banner show';
-}
-
+/* ══════════════════════════════════════════
+   PAGE LOAD
+══════════════════════════════════════════ */
 window.addEventListener('load', () => {
-  if (localStorage.getItem('brainies_profile')) {
-    window.location.href = 'index.html';
-    return;
-  }
-  // Restore theme
+  if (localStorage.getItem('brainies_profile')) { window.location.href = 'index.html'; return; }
   if (localStorage.getItem('brainies_theme') === 'light') {
     document.body.classList.add('light');
     document.getElementById('theme-btn').textContent = '☀️';
   }
-  pick(document.getElementById('std-btn'));
+  // Default to standard
+  document.querySelectorAll('.pb').forEach(b => { b.classList.remove('sel'); b.setAttribute('aria-pressed','false'); });
+  document.getElementById('std-btn').classList.add('sel');
+  document.getElementById('std-btn').setAttribute('aria-pressed','true');
   document.getElementById('go-btn').disabled = true;
   checkOnline();
-  window.addEventListener('online',  checkOnline);
+  window.addEventListener('online', checkOnline);
   window.addEventListener('offline', checkOnline);
+
+  // Speak welcome, then start listening
   setTimeout(() => {
+    setMsg('Speaking welcome — please wait…', 'live');
     speak(
-      'Welcome to Brainies. Standard profile is selected. Say your condition to change it — blind, dyslexic, ADHD, deaf, or motor. Then type your name and press Enter.',
-      startMic
+      'Welcome to Brainies. I am here to help. ' +
+      'To get started, say your name and condition together. ' +
+      'For example: my name is Priya, blind. ' +
+      'Or just say your condition: blind, dyslexic, ADHD, deaf, motor, or standard. ' +
+      'Say help anytime for instructions.',
+      () => startVoice() // start listening after welcome speech
     );
-    setMsg('Speaking welcome...', 'live');
-  }, 400);
+  }, 600);
 });
 
+// Keyboard shortcuts
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && document.getElementById('uname').value.trim()) enter();
   if (e.altKey && e.key === '+') changeFontSize(2);
   if (e.altKey && e.key === '-') changeFontSize(-2);
+  if (e.key === 'Escape') stopSpeaking();
 });
 </script>
 </body>
