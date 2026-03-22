@@ -5,8 +5,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Brainies — Teacher Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Sora:wght@700;800&display=swap" rel="stylesheet"/>
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js"></script>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<!-- PERF: 2 weights only -->
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;700&family=Sora:wght@700;800&display=swap" rel="stylesheet"/>
+<!-- PERF: Chart.js loaded async — doesn't block page render -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4/dist/chart.umd.min.js" async></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -24,13 +27,14 @@ body.light{
   --green:#1a9e56;--green-dim:rgba(26,158,86,.10);
   --red:#dc2626;--gold:#d97706;--blue:#2563eb;--purple:#7c3aed;
 }
-body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);transition:background .25s,color .25s}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);transition:background .2s,color .2s}
 
 nav{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;padding:.85rem 1.75rem;background:var(--bg2);border-bottom:1px solid var(--border)}
 .nav-logo{color:var(--green);font-size:1.1rem;font-weight:700;text-decoration:none;font-family:'Sora',sans-serif}
 .nav-badge{font-size:.72rem;padding:.2rem .6rem;border-radius:20px;background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.25);color:var(--blue)}
 .nav-right{margin-left:auto;display:flex;gap:.5rem;flex-wrap:wrap}
-nav a,nav button{padding:.38rem .8rem;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:.8rem;cursor:pointer;text-decoration:none;font-family:'DM Sans',sans-serif;transition:all .2s}
+/* PERF: color+border only */
+nav a,nav button{padding:.38rem .8rem;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:.8rem;cursor:pointer;text-decoration:none;font-family:'DM Sans',sans-serif;transition:color .15s,border-color .15s}
 nav a:hover,nav button:hover{border-color:var(--green);color:var(--green)}
 .btn-danger{border-color:rgba(248,113,113,.3)!important;color:var(--red)!important}
 .btn-danger:hover{border-color:var(--red)!important;background:rgba(248,113,113,.08)!important}
@@ -57,7 +61,7 @@ nav a:hover,nav button:hover{border-color:var(--green);color:var(--green)}
 .chart-wrap{position:relative;height:190px}
 
 .export-row{display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:1.5rem;align-items:center}
-.export-row button{padding:.5rem 1.1rem;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:.82rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
+.export-row button{padding:.5rem 1.1rem;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:.82rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:color .15s,border-color .15s}
 .export-row button:hover{border-color:var(--green);color:var(--green)}
 
 .table-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
@@ -65,22 +69,21 @@ nav a:hover,nav button:hover{border-color:var(--green);color:var(--green)}
 .table-toolbar input,.table-toolbar select{padding:.42rem .75rem;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text2);font-size:.82rem;font-family:'DM Sans',sans-serif;outline:none}
 .table-toolbar input:focus,.table-toolbar select:focus{border-color:var(--green)}
 .table-toolbar input::placeholder{color:var(--text2);opacity:.6}
-/* FIX: color of select options text on dark bg */
 .table-toolbar select option{background:var(--bg3);color:var(--text)}
 .table-count{margin-left:auto;font-size:.78rem;color:var(--text2)}
 .tscroll{overflow-x:auto}
-table{width:100%;border-collapse:collapse;font-size:.83rem}
+/* PERF: table uses contain:content to limit repaint scope */
+table{width:100%;border-collapse:collapse;font-size:.83rem;contain:content}
 th{text-align:left;padding:.65rem 1rem;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--text2);border-bottom:1px solid var(--border);background:var(--bg3);white-space:nowrap}
 td{padding:.8rem 1rem;border-bottom:1px solid var(--border);vertical-align:middle}
 tr:last-child td{border-bottom:none}
 tr.at-risk td{background:rgba(248,113,113,.03)}
-tr:hover td{background:rgba(255,255,255,.015)}
 .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:.35rem;vertical-align:middle}
 .dot.g{background:var(--green)}.dot.y{background:var(--gold)}.dot.r{background:var(--red)}
 
 .pbar-wrap{display:flex;align-items:center;gap:.5rem}
-.pbar{display:inline-block;width:70px;height:6px;background:var(--bg3);border-radius:50px;overflow:hidden;vertical-align:middle}
-.pfill{height:6px;border-radius:50px;background:var(--green);transition:width .4s ease}
+.pbar{display:inline-block;width:70px;height:6px;background:var(--bg3);border-radius:50px;overflow:hidden}
+.pfill{height:6px;border-radius:50px;background:var(--green);transition:width .3s ease}
 .pbar-num{font-size:.82rem;font-weight:600;color:var(--text);min-width:32px}
 
 .tag{font-size:.68rem;padding:.18rem .5rem;border-radius:20px;font-weight:600;white-space:nowrap}
@@ -92,36 +95,31 @@ tr:hover td{background:rgba(255,255,255,.015)}
 .tag.standard{background:var(--bg3);color:var(--text2)}
 .alert-tag{font-size:.68rem;padding:.15rem .5rem;border-radius:20px;background:rgba(248,113,113,.15);color:var(--red);font-weight:600;margin-left:.3rem}
 
-/* FIX: login overlay for cleaner auth UX */
-#auth-overlay{
-  display:none;position:fixed;inset:0;background:var(--bg);z-index:1000;
-  align-items:center;justify-content:center;flex-direction:column;gap:1.5rem;
-}
+/* Auth overlay */
+#auth-overlay{display:none;position:fixed;inset:0;background:var(--bg);z-index:1000;align-items:center;justify-content:center;flex-direction:column;gap:1.5rem}
 #auth-overlay.show{display:flex}
-.auth-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;width:min(360px,90vw);text-align:center}
+.auth-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;width:min(340px,90vw);text-align:center}
 .auth-card h2{font-family:'Sora',sans-serif;font-size:1.2rem;margin-bottom:.5rem}
-.auth-card p{font-size:.84rem;color:var(--text2);margin-bottom:1.25rem}
-.auth-card input{width:100%;padding:.7rem .9rem;background:var(--bg3);border:1px solid var(--border2);border-radius:9px;color:var(--text);font-size:1rem;text-align:center;letter-spacing:.15em;outline:none;font-family:'DM Sans',sans-serif}
+.auth-card p{font-size:.84rem;color:var(--text2);margin-bottom:1.2rem}
+.auth-card input{width:100%;padding:.68rem .9rem;background:var(--bg3);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:1.1rem;text-align:center;letter-spacing:.2em;outline:none;font-family:'DM Sans',sans-serif;transition:border-color .15s}
 .auth-card input:focus{border-color:var(--green)}
-.auth-card .auth-btn{width:100%;margin-top:.85rem;padding:.75rem;background:var(--green);color:#000;border:none;border-radius:9px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif;font-size:.95rem}
-.auth-card .auth-err{font-size:.78rem;color:var(--red);margin-top:.5rem;min-height:1.1rem}
+.auth-btn{width:100%;margin-top:.8rem;padding:.72rem;background:var(--green);color:#000;border:none;border-radius:8px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif;font-size:.93rem}
+.auth-err{font-size:.76rem;color:var(--red);margin-top:.45rem;min-height:1rem}
 </style>
 </head>
 <body>
 
 <div class="toast-wrap" id="toast-wrap"></div>
 
-<!-- FIX: replaced prompt() with a proper overlay — prompt() is blocked in many browsers/environments -->
 <div id="auth-overlay">
   <div class="auth-card">
-    <div style="font-size:2rem;margin-bottom:.5rem">🧠</div>
+    <div style="font-size:2rem;margin-bottom:.4rem">🧠</div>
     <h2>Teacher Login</h2>
     <p>Enter your PIN to access the class dashboard.</p>
-    <input type="password" id="pin-input" placeholder="····" maxlength="8"
-           onkeydown="if(event.key==='Enter')submitPin()"/>
+    <input type="password" id="pin-input" placeholder="····" maxlength="8"/>
     <button class="auth-btn" onclick="submitPin()">Enter Dashboard →</button>
     <div class="auth-err" id="auth-err"></div>
-    <div style="margin-top:1rem"><a href="index.html" style="font-size:.8rem;color:var(--text2);text-decoration:none">← Back to home</a></div>
+    <div style="margin-top:.9rem"><a href="index.html" style="font-size:.78rem;color:var(--text2);text-decoration:none">← Back to home</a></div>
   </div>
 </div>
 
@@ -139,29 +137,25 @@ tr:hover td{background:rgba(255,255,255,.015)}
 
 <div class="main">
   <div class="page-title">Class Dashboard</div>
-  <p class="page-sub" id="page-sub">Student progress and accessibility overview &nbsp;·&nbsp; <span id="live-time"></span></p>
-
+  <p class="page-sub" id="page-sub">Student progress and accessibility overview · <span id="live-time"></span></p>
   <div class="stats">
     <div class="stat g"><div class="stat-n" id="s-total">—</div><div class="stat-l">Total students</div></div>
     <div class="stat b"><div class="stat-n" id="s-lessons">—</div><div class="stat-l">Lessons completed</div></div>
     <div class="stat o"><div class="stat-n" id="s-avg">—</div><div class="stat-l">Avg progress</div></div>
     <div class="stat r"><div class="stat-n" id="s-alerts">—</div><div class="stat-l">Need attention</div></div>
   </div>
-
   <div class="charts">
-    <div class="chart-card"><div class="chart-title">Lessons completed per student</div><div class="chart-wrap"><canvas id="c-bar"></canvas></div></div>
-    <div class="chart-card"><div class="chart-title">Accessibility profiles used</div><div class="chart-wrap"><canvas id="c-pie"></canvas></div></div>
-    <div class="chart-card"><div class="chart-title">Weekly activity (lessons / day)</div><div class="chart-wrap"><canvas id="c-line"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">Lessons per student</div><div class="chart-wrap"><canvas id="c-bar"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">Accessibility profiles</div><div class="chart-wrap"><canvas id="c-pie"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">Weekly activity</div><div class="chart-wrap"><canvas id="c-line"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">Feature usage</div><div class="chart-wrap"><canvas id="c-feat"></canvas></div></div>
   </div>
-
   <div class="export-row">
     <button onclick="exportCSV()">⬇ Export CSV</button>
     <button onclick="exportJSON()">⬇ Export JSON</button>
     <button onclick="exportPDF()">🖨 Print PDF</button>
-    <button onclick="sendAlerts()">📧 Send alerts to parents</button>
+    <button onclick="sendAlerts()">📧 Send alerts</button>
   </div>
-
   <div class="table-wrap">
     <div class="table-toolbar">
       <input type="search" id="search-box" placeholder="🔍 Search student..." oninput="applyFilters()"/>
@@ -177,17 +171,12 @@ tr:hover td{background:rgba(255,255,255,.015)}
         <option value="name">Sort: Name A–Z</option>
         <option value="inactive">Sort: Inactive ↓</option>
       </select>
-      <button onclick="resetFilters()" style="font-size:.75rem;padding:.38rem .7rem">✕ Reset</button>
+      <button onclick="resetFilters()" style="font-size:.75rem;padding:.35rem .65rem">✕ Reset</button>
       <span class="table-count" id="table-count"></span>
     </div>
     <div class="tscroll">
       <table>
-        <thead>
-          <tr>
-            <th>Student</th><th>Profile</th><th>Progress</th>
-            <th>Lessons</th><th>Last active</th><th>Status</th>
-          </tr>
-        </thead>
+        <thead><tr><th>Student</th><th>Profile</th><th>Progress</th><th>Lessons</th><th>Last active</th><th>Status</th></tr></thead>
         <tbody id="tbody"></tbody>
       </table>
     </div>
@@ -197,82 +186,78 @@ tr:hover td{background:rgba(255,255,255,.015)}
 <script>
 const API = '';
 
-/* ── TOAST ── */
-function toast(msg,type){const w=document.getElementById('toast-wrap');const t=document.createElement('div');t.className='toast'+(type?' '+type:'');t.textContent=msg;w.appendChild(t);setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .3s';setTimeout(()=>t.remove(),300)},2500);}
+function toast(msg,type){const w=document.getElementById('toast-wrap');const t=document.createElement('div');t.className='toast'+(type?' '+type:'');t.textContent=msg;w.appendChild(t);setTimeout(()=>{t.style.cssText='opacity:0;transition:opacity .2s';setTimeout(()=>t.remove(),220)},2200);}
 
-/* ── THEME ── */
 function toggleTheme(){
   const light=document.body.classList.toggle('light');
-  const icon=light?'☀️':'🌙';
-  document.getElementById('theme-btn').textContent=icon;
+  document.getElementById('theme-btn').textContent=light?'☀️':'🌙';
   localStorage.setItem('brainies_theme',light?'light':'dark');
-  /* FIX: redraw charts after theme toggle so colors update */
-  drawCharts();
+  // PERF: debounce chart redraw — theme toggle fires multiple style recalcs
+  clearTimeout(window._chartRedrawTimer);
+  window._chartRedrawTimer=setTimeout(drawCharts,100);
 }
 
-/* ── AUTH — overlay PIN login instead of prompt() ── */
-function showAuthOverlay(){document.getElementById('auth-overlay').className='show';}
-function hideAuthOverlay(){document.getElementById('auth-overlay').className='';}
-
+/* ── AUTH */
+function showAuth(){document.getElementById('auth-overlay').className='show';}
+function hideAuth(){document.getElementById('auth-overlay').className='';}
+document.addEventListener('DOMContentLoaded',()=>{
+  const input=document.getElementById('pin-input');
+  if(input)input.addEventListener('keydown',e=>{if(e.key==='Enter')submitPin();});
+});
 function submitPin(){
   const pin=document.getElementById('pin-input').value.trim();
-  /* FIX: also accept PIN via API call so teacher PIN env var works */
-  fetch(API+'/teacher-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pin})})
+  fetch(API+'/teacher-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pin}),signal:AbortSignal.timeout(5000)})
     .then(r=>r.json())
     .then(d=>{
-      if(d.success){grantAccess();}
-      else{document.getElementById('auth-err').textContent='Wrong PIN. Try again.';document.getElementById('pin-input').value='';}
+      if(d.success)grantAccess();
+      else{document.getElementById('auth-err').textContent='Wrong PIN.';document.getElementById('pin-input').value='';}
     })
     .catch(()=>{
-      /* Offline fallback — accept default PIN client-side */
-      if(pin==='1234'){grantAccess();}
+      if(pin==='1234')grantAccess();
       else{document.getElementById('auth-err').textContent='Wrong PIN. Default is 1234.';}
     });
 }
+function grantAccess(){localStorage.setItem('brainies_auth','ok');hideAuth();fetchData();}
+function logoutTeacher(){if(!confirm('Log out?'))return;localStorage.removeItem('brainies_auth');window.location.href='index.html';}
 
-function grantAccess(){
-  localStorage.setItem('brainies_auth','ok');
-  hideAuthOverlay();
-  fetchData();
-}
-
-function logoutTeacher(){
-  if(!confirm('Log out of teacher view?'))return;
-  localStorage.removeItem('brainies_auth');
-  window.location.href='index.html';
-}
-
-/* ── DEMO DATA ── */
+/* ── DATA */
 let ALL_STUDENTS=[
-  {name:'Aarav Singh',  profile:'dyslexic',progress:78,lessons:15,days:0},
-  {name:'Priya Sharma', profile:'adhd',    progress:65,lessons:12,days:0},
-  {name:'Rohit Patel',  profile:'blind',   progress:91,lessons:18,days:1},
-  {name:'Sneha Nair',   profile:'motor',   progress:22,lessons:3, days:5},
-  {name:'Karan Mehta',  profile:'standard',progress:55,lessons:10,days:0},
-  {name:'Divya Menon',  profile:'dyslexic',progress:38,lessons:6, days:3},
-  {name:'Arjun Rao',    profile:'deaf',    progress:72,lessons:14,days:0},
-  {name:'Meera Iyer',   profile:'adhd',    progress:80,lessons:16,days:0},
+  {name:'Aarav Singh',  profile:'dyslexic',progress:78,lessons:15,days_inactive:0},
+  {name:'Priya Sharma', profile:'adhd',    progress:65,lessons:12,days_inactive:0},
+  {name:'Rohit Patel',  profile:'blind',   progress:91,lessons:18,days_inactive:1},
+  {name:'Sneha Nair',   profile:'motor',   progress:22,lessons:3, days_inactive:5},
+  {name:'Karan Mehta',  profile:'standard',progress:55,lessons:10,days_inactive:0},
+  {name:'Divya Menon',  profile:'dyslexic',progress:38,lessons:6, days_inactive:3},
+  {name:'Arjun Rao',    profile:'deaf',    progress:72,lessons:14,days_inactive:0},
+  {name:'Meera Iyer',   profile:'adhd',    progress:80,lessons:16,days_inactive:0},
 ];
 
 async function fetchData(){
   try{
-    const r=await fetch(API+'/dashboard/stats');
+    const r=await fetch(API+'/dashboard/stats',{signal:AbortSignal.timeout(6000)});
     const d=await r.json();
     if(d.students&&d.students.length)ALL_STUDENTS=d.students;
     toast('✅ Data loaded','ok');
   }catch{toast('⚠ Backend offline — showing demo data');}
-  updateStats();applyFilters();drawCharts();
+  updateStats();applyFilters();
+  // PERF: wait for Chart.js to load if async hasn't finished yet
+  waitForChartJS(drawCharts);
+}
+
+function waitForChartJS(cb){
+  if(window.Chart)cb();
+  else setTimeout(()=>waitForChartJS(cb),50);
 }
 
 function updateStats(){
-  document.getElementById('s-total').textContent=ALL_STUDENTS.length;
+  const total=ALL_STUDENTS.length;
+  document.getElementById('s-total').textContent=total;
   document.getElementById('s-lessons').textContent=ALL_STUDENTS.reduce((a,s)=>a+s.lessons,0);
-  const avg=ALL_STUDENTS.length?Math.round(ALL_STUDENTS.reduce((a,s)=>a+s.progress,0)/ALL_STUDENTS.length):0;
-  document.getElementById('s-avg').textContent=avg+'%';
-  document.getElementById('s-alerts').textContent=ALL_STUDENTS.filter(s=>s.days>3).length;
+  document.getElementById('s-avg').textContent=(total?Math.round(ALL_STUDENTS.reduce((a,s)=>a+s.progress,0)/total):0)+'%';
+  document.getElementById('s-alerts').textContent=ALL_STUDENTS.filter(s=>(s.days_inactive||s.days||0)>3).length;
 }
 
-/* ── TABLE ── */
+/* ── TABLE — PERF: build HTML string in one pass, single innerHTML assignment */
 function applyFilters(){
   const q=document.getElementById('search-box').value.trim().toLowerCase();
   const prof=document.getElementById('filter-profile').value;
@@ -283,110 +268,57 @@ function applyFilters(){
   if(sort==='progress')data.sort((a,b)=>b.progress-a.progress);
   else if(sort==='lessons')data.sort((a,b)=>b.lessons-a.lessons);
   else if(sort==='name')data.sort((a,b)=>a.name.localeCompare(b.name));
-  else if(sort==='inactive')data.sort((a,b)=>b.days-a.days);
+  else if(sort==='inactive')data.sort((a,b)=>(b.days_inactive||b.days||0)-(a.days_inactive||a.days||0));
   renderTable(data);
 }
 function resetFilters(){document.getElementById('search-box').value='';document.getElementById('filter-profile').value='';document.getElementById('sort-by').value='progress';applyFilters();}
 
 function renderTable(data){
-  function pfillColor(p){return p>=70?'var(--green)':p>=40?'var(--gold)':'var(--red)'}
-  /* FIX: use days_inactive if days is undefined (API returns days_inactive) */
-  document.getElementById('tbody').innerHTML=data.map(s=>{
-    const inactive = s.days !== undefined ? s.days : (s.days_inactive||0);
-    const risk=inactive>3;
-    const dot=inactive===0?'g':inactive<=2?'y':'r';
-    const status=inactive===0?'Active':inactive<=2?'Good':'Needs help';
-    return`<tr class="${risk?'at-risk':''}">
-      <td>${s.name}</td>
-      <td><span class="tag ${s.profile}">${s.profile}</span></td>
-      <td>
-        <div class="pbar-wrap">
-          <div class="pbar"><div class="pfill" style="width:${s.progress}%;background:${pfillColor(s.progress)}"></div></div>
-          <span class="pbar-num">${s.progress}%</span>
-        </div>
-      </td>
-      <td>${s.lessons}</td>
-      <td>${inactive===0?'Today':inactive+'d ago'}</td>
-      <td><span class="dot ${dot}"></span>${status}${risk?'<span class="alert-tag">⚠ Alert</span>':''}</td>
-    </tr>`;
+  function fc(p){return p>=70?'var(--green)':p>=40?'var(--gold)':'var(--red)'}
+  const html=data.map(s=>{
+    const d=s.days_inactive!==undefined?s.days_inactive:(s.days||0);
+    const risk=d>3,dot=d===0?'g':d<=2?'y':'r',status=d===0?'Active':d<=2?'Good':'Needs help';
+    return`<tr class="${risk?'at-risk':''}"><td>${s.name}</td><td><span class="tag ${s.profile}">${s.profile}</span></td><td><div class="pbar-wrap"><div class="pbar"><div class="pfill" style="width:${s.progress}%;background:${fc(s.progress)}"></div></div><span class="pbar-num">${s.progress}%</span></div></td><td>${s.lessons}</td><td>${d===0?'Today':d+'d ago'}</td><td><span class="dot ${dot}"></span>${status}${risk?'<span class="alert-tag">⚠ Alert</span>':''}</td></tr>`;
   }).join('');
+  document.getElementById('tbody').innerHTML=html;
   document.getElementById('table-count').textContent='Showing '+data.length+' of '+ALL_STUDENTS.length;
 }
 
-/* ── CHARTS ── */
+/* ── CHARTS — PERF: only redraw when Chart.js is ready; debounced on theme change */
 let charts={};
-function chartColors(){
-  const dark=!document.body.classList.contains('light');
-  return{text:dark?'rgba(255,255,255,.6)':'rgba(0,0,0,.55)',grid:dark?'rgba(255,255,255,.06)':'rgba(0,0,0,.07)'}
-}
+function chartColors(){const dark=!document.body.classList.contains('light');return{text:dark?'rgba(255,255,255,.6)':'rgba(0,0,0,.55)',grid:dark?'rgba(255,255,255,.06)':'rgba(0,0,0,.07)'};}
 function drawCharts(){
-  /* FIX: safely destroy charts before redrawing */
-  Object.values(charts).forEach(c=>{try{c.destroy();}catch{}});
-  charts={};
-  const tc=chartColors();
-  const opts={responsive:true,maintainAspectRatio:false};
-  const scaleOpt={ticks:{color:tc.text},grid:{color:tc.grid}};
-  const bgColor=document.body.classList.contains('light')?'#fff':'#141618';
+  if(!window.Chart)return;
+  Object.values(charts).forEach(c=>{try{c.destroy();}catch{}});charts={};
+  const tc=chartColors(),opts={responsive:true,maintainAspectRatio:false,animation:{duration:300}};
+  const sc={ticks:{color:tc.text},grid:{color:tc.grid}};
+  const bg=document.body.classList.contains('light')?'#fff':'#141618';
 
-  charts.bar=new Chart(document.getElementById('c-bar'),{type:'bar',data:{
-    labels:ALL_STUDENTS.map(s=>s.name.split(' ')[0]),
-    datasets:[{data:ALL_STUDENTS.map(s=>s.lessons),backgroundColor:'rgba(61,220,132,.7)',borderRadius:5}]
-  },options:{...opts,plugins:{legend:{display:false}},scales:{x:{...scaleOpt},y:{...scaleOpt}}}});
-
+  charts.bar=new Chart(document.getElementById('c-bar'),{type:'bar',data:{labels:ALL_STUDENTS.map(s=>s.name.split(' ')[0]),datasets:[{data:ALL_STUDENTS.map(s=>s.lessons),backgroundColor:'rgba(61,220,132,.7)',borderRadius:4}]},options:{...opts,plugins:{legend:{display:false}},scales:{x:sc,y:sc}}});
   const pc={};ALL_STUDENTS.forEach(s=>pc[s.profile]=(pc[s.profile]||0)+1);
-  charts.pie=new Chart(document.getElementById('c-pie'),{type:'doughnut',data:{
-    labels:Object.keys(pc),
-    datasets:[{data:Object.values(pc),backgroundColor:['#60a5fa','#fbbf24','#a78bfa','#f472b6','#3ddc84','#888'],borderWidth:2,borderColor:bgColor}]
-  },options:{...opts,plugins:{legend:{labels:{color:tc.text,font:{size:11}}}}}});
-
-  charts.line=new Chart(document.getElementById('c-line'),{type:'line',data:{
-    labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],
-    datasets:[{label:'Lessons',data:[8,14,11,18,15,6,10],borderColor:'#3ddc84',backgroundColor:'rgba(61,220,132,.06)',fill:true,tension:.4}]
-  },options:{...opts,plugins:{legend:{display:false}},scales:{x:{...scaleOpt},y:{...scaleOpt}}}});
-
-  charts.feat=new Chart(document.getElementById('c-feat'),{type:'bar',data:{
-    labels:['Voice','Simplify','Translate','OCR','Timer'],
-    datasets:[{data:[42,76,58,21,50],backgroundColor:['#60a5fa','#fbbf24','#3ddc84','#a78bfa','#f472b6'],borderRadius:5}]
-  },options:{...opts,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{...scaleOpt},y:{...scaleOpt}}}});
+  charts.pie=new Chart(document.getElementById('c-pie'),{type:'doughnut',data:{labels:Object.keys(pc),datasets:[{data:Object.values(pc),backgroundColor:['#60a5fa','#fbbf24','#a78bfa','#f472b6','#3ddc84','#888'],borderWidth:2,borderColor:bg}]},options:{...opts,plugins:{legend:{labels:{color:tc.text,font:{size:11}}}}}});
+  charts.line=new Chart(document.getElementById('c-line'),{type:'line',data:{labels:['Mon','Tue','Wed','Thu','Fri','Sat','Sun'],datasets:[{label:'Lessons',data:[8,14,11,18,15,6,10],borderColor:'#3ddc84',backgroundColor:'rgba(61,220,132,.06)',fill:true,tension:.4}]},options:{...opts,plugins:{legend:{display:false}},scales:{x:sc,y:sc}}});
+  charts.feat=new Chart(document.getElementById('c-feat'),{type:'bar',data:{labels:['Voice','Simplify','Translate','OCR','Timer'],datasets:[{data:[42,76,58,21,50],backgroundColor:['#60a5fa','#fbbf24','#3ddc84','#a78bfa','#f472b6'],borderRadius:4}]},options:{...opts,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:sc,y:sc}}});
 }
 
-/* ── EXPORT ── */
-function exportCSV(){
-  const rows=['Name,Profile,Progress,Lessons,Status',...ALL_STUDENTS.map(s=>`${s.name},${s.profile},${s.progress}%,${s.lessons},${(s.days||s.days_inactive||0)===0?'Active':(s.days||s.days_inactive||0)+'d inactive'}`)].join('\n');
-  dl('brainies_report.csv','text/csv',rows);toast('✅ CSV downloaded','ok');
-}
-function exportJSON(){dl('brainies_report.json','application/json',JSON.stringify({exported:new Date().toISOString(),students:ALL_STUDENTS},null,2));toast('✅ JSON downloaded','ok');}
-function exportPDF(){
-  const rows=ALL_STUDENTS.map(s=>`<tr><td>${s.name}</td><td>${s.profile}</td><td>${s.progress}%</td><td>${s.lessons}</td><td>${(s.days||s.days_inactive||0)===0?'Active':(s.days||s.days_inactive||0)+'d ago'}</td></tr>`).join('');
-  const w=window.open('','_blank');
-  if(!w){toast('Pop-up blocked — allow pop-ups and try again','ok');return;}
-  w.document.write(`<html><head><title>Brainies Report</title><style>body{font-family:Arial;padding:2rem}h2{color:#166534}table{width:100%;border-collapse:collapse}th{background:#166534;color:#fff;padding:8px;text-align:left}td{padding:7px;border-bottom:1px solid #ddd}tr:nth-child(even){background:#f9f9f9}</style></head><body><h2>🧠 Brainies — Class Report</h2><p>Generated: ${new Date().toLocaleString()} · Total students: ${ALL_STUDENTS.length}</p><table><thead><tr><th>Name</th><th>Profile</th><th>Progress</th><th>Lessons</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
-  w.document.close();setTimeout(()=>w.print(),400);toast('✅ PDF opened','ok');
-}
+/* ── EXPORT */
 function dl(name,type,content){const a=document.createElement('a');a.href='data:'+type+';charset=utf-8,'+encodeURIComponent(content);a.download=name;document.body.appendChild(a);a.click();document.body.removeChild(a);}
-function sendAlerts(){const at=ALL_STUDENTS.filter(s=>(s.days||s.days_inactive||0)>3);toast('📧 Alerts sent to '+at.length+' parents');}
+function exportCSV(){const rows=['Name,Profile,Progress,Lessons,Status',...ALL_STUDENTS.map(s=>`${s.name},${s.profile},${s.progress}%,${s.lessons},${(s.days_inactive||s.days||0)===0?'Active':(s.days_inactive||s.days||0)+'d inactive'}`)].join('\n');dl('brainies.csv','text/csv',rows);toast('✅ CSV downloaded','ok');}
+function exportJSON(){dl('brainies.json','application/json',JSON.stringify({exported:new Date().toISOString(),students:ALL_STUDENTS},null,2));toast('✅ JSON downloaded','ok');}
+function exportPDF(){const rows=ALL_STUDENTS.map(s=>`<tr><td>${s.name}</td><td>${s.profile}</td><td>${s.progress}%</td><td>${s.lessons}</td></tr>`).join('');const w=window.open('','_blank');if(!w){toast('Pop-up blocked','ok');return;}w.document.write(`<html><head><title>Brainies Report</title><style>body{font-family:Arial;padding:2rem}table{width:100%;border-collapse:collapse}th{background:#166534;color:#fff;padding:8px}td{padding:7px;border-bottom:1px solid #ddd}</style></head><body><h2>🧠 Brainies Class Report — ${new Date().toLocaleDateString()}</h2><table><thead><tr><th>Name</th><th>Profile</th><th>Progress</th><th>Lessons</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);w.document.close();setTimeout(()=>w.print(),300);toast('✅ Print opened','ok');}
+function sendAlerts(){const at=ALL_STUDENTS.filter(s=>(s.days_inactive||s.days||0)>3);toast('📧 Alerts sent to '+at.length+' parents');}
 
-/* ── LIVE TIME ── */
+/* ── LIVE TIME */
 function updateTime(){const el=document.getElementById('live-time');if(el)el.textContent=new Date().toLocaleString('en-IN',{weekday:'short',hour:'2-digit',minute:'2-digit'});}
 
-/* ── INIT ── */
+/* ── INIT */
 window.addEventListener('load',()=>{
   if(localStorage.getItem('brainies_theme')==='light'){document.body.classList.add('light');document.getElementById('theme-btn').textContent='☀️';}
   updateTime();setInterval(updateTime,60000);
-
-  if(localStorage.getItem('brainies_auth')==='ok'){
-    fetchData();
-  } else {
-    showAuthOverlay();
-    /* Show demo data behind the overlay so the page isn't blank */
-    updateStats();applyFilters();drawCharts();
-  }
-});
-
-/* FIX: allow Enter key on PIN input */
-document.addEventListener('DOMContentLoaded',()=>{
-  const input=document.getElementById('pin-input');
-  if(input)input.addEventListener('keydown',e=>{if(e.key==='Enter')submitPin();});
+  // Show demo data immediately for responsive feel
+  updateStats();applyFilters();
+  if(localStorage.getItem('brainies_auth')==='ok'){fetchData();}
+  else{showAuth();waitForChartJS(drawCharts);}
 });
 </script>
 </body>
