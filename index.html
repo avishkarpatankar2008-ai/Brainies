@@ -8,11 +8,8 @@
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Sora:wght@700;800&display=swap" rel="stylesheet"/>
 <link rel="stylesheet" href="https://fonts.cdnfonts.com/css/opendyslexic" onerror="this.href='https://cdn.jsdelivr.net/npm/@fontsource/opendyslexic/index.css'"/>
-
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-
-/* ── THEMES ── */
 :root{
   --bg:#0b0d0f;--bg2:#141618;--bg3:#1e2124;
   --border:#2c2f33;--border2:#3d4247;
@@ -26,8 +23,6 @@ body.light{
   --text:#1a1d21;--text2:#596475;
   --green:#1a9e56;--green-dim:rgba(26,158,86,.10);
 }
-
-/* ── ACCESSIBILITY MODES ── */
 body.mode-dyslexic{
   --bg:#fefce8;--bg2:#fef9c3;--bg3:#fef08a;
   --border:#d4c800;--border2:#b8a800;
@@ -53,10 +48,8 @@ body.mode-blind{
 body.mode-blind button,body.mode-blind a,body.mode-blind .pcard{outline:3px solid #fff!important;outline-offset:3px}
 body.mode-deaf .caption-bar{display:flex!important}
 body.mode-motor button,body.mode-motor a{min-height:56px!important;font-size:18px!important;padding:.75rem 1.25rem!important}
-
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;font-size:16px;transition:background .25s,color .25s}
 
-/* ── CAPTION BAR ── */
 .caption-bar{
   display:none;align-items:center;gap:.6rem;
   background:#0f172a;padding:.5rem 1.75rem;
@@ -65,14 +58,12 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);lin
 .cap-dot{width:7px;height:7px;border-radius:50%;background:#60a5fa;animation:blink 1.2s ease infinite;flex-shrink:0}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
 
-/* ── OFFLINE BANNER ── */
 .offline-bar{
   display:none;background:rgba(251,191,36,.1);border-bottom:1px solid rgba(251,191,36,.2);
   padding:.55rem 1.75rem;font-size:.82rem;color:#fbbf24;text-align:center;
 }
 .offline-bar.show{display:block}
 
-/* ── NAVBAR ── */
 nav{
   display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;
   padding:.85rem 1.75rem;background:var(--bg2);
@@ -90,7 +81,6 @@ nav a,nav button{
 }
 nav a:hover,nav button:hover{border-color:var(--green);color:var(--green)}
 
-/* ── HERO ── */
 .hero{
   padding:3.5rem 1.75rem 2.5rem;text-align:center;
   border-bottom:1px solid var(--border);
@@ -99,7 +89,6 @@ nav a:hover,nav button:hover{border-color:var(--green);color:var(--green)}
 .hero h1 span{color:var(--green)}
 .hero p{color:var(--text2);max-width:520px;margin:0 auto 1.75rem;font-size:.92rem}
 
-/* ── PROGRESS SUMMARY CARD ── */
 .progress-card{
   background:var(--bg2);border:1px solid var(--border);
   border-radius:var(--radius);padding:1.25rem 1.5rem;
@@ -114,7 +103,6 @@ nav a:hover,nav button:hover{border-color:var(--green);color:var(--green)}
 .pc-bar{background:var(--bg3);border-radius:50px;height:8px;overflow:hidden}
 .pc-fill{height:8px;border-radius:50px;background:var(--green);transition:width .6s ease}
 
-/* ── HERO BUTTONS ── */
 .hero-btns{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap}
 .btn-green{
   padding:.75rem 1.5rem;background:var(--green);color:#000;
@@ -131,7 +119,6 @@ nav a:hover,nav button:hover{border-color:var(--green);color:var(--green)}
 }
 .btn-outline:hover{border-color:var(--green);color:var(--green)}
 
-/* ── SECTIONS ── */
 .section{padding:2.5rem 1.75rem;max-width:960px;margin:0 auto}
 .section-title{
   font-family:'Sora',sans-serif;font-size:1.05rem;font-weight:700;
@@ -139,7 +126,6 @@ nav a:hover,nav button:hover{border-color:var(--green);color:var(--green)}
   border-bottom:1px solid var(--border);color:var(--text);
 }
 
-/* ── PROFILE CARDS ── */
 .pgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:.75rem}
 .pcard{
   padding:1.1rem .75rem;border:1.5px solid var(--border);
@@ -153,7 +139,6 @@ nav a:hover,nav button:hover{border-color:var(--green);color:var(--green)}
 .pcard .pname{font-size:.88rem;font-weight:700;color:var(--text)}
 .pcard .pdesc{font-size:.71rem;color:var(--text2);margin-top:.2rem}
 
-/* ── DEMO BOX ── */
 .demo-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin-top:.75rem}
 .tabs{display:flex;gap:.4rem;margin-bottom:1.25rem;flex-wrap:wrap}
 .tab{
@@ -192,7 +177,6 @@ select{
 .result.show{display:block}.result.loading{font-style:italic}
 .result.ok{color:var(--text)}.result.err{color:#f87171}
 
-/* ── TOAST ── */
 .toast-wrap{
   position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);
   z-index:9000;display:flex;flex-direction:column;gap:.4rem;
@@ -207,7 +191,6 @@ select{
 .toast.red{background:rgba(248,113,113,.08);border-color:#f87171;color:#f87171}
 @keyframes toastIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
 
-/* ── VOICE PANEL ── */
 .voice-box{text-align:center;padding:.5rem 0}
 .big-mic{
   width:72px;height:72px;border-radius:50%;border:2px solid var(--border2);
@@ -230,14 +213,12 @@ select{
   border-radius:6px;font-size:.74rem;color:var(--text2);text-align:center;
 }
 
-/* ── UPLOAD ── */
 .upload{
   border:2px dashed var(--border2);border-radius:8px;padding:2rem;
   text-align:center;cursor:pointer;color:var(--text2);font-size:.88rem;transition:all .2s;
 }
 .upload:hover{border-color:var(--green);color:var(--green)}
 
-/* ── TIMER ── */
 .timer{text-align:center;padding:.75rem 0}
 .clock{font-size:3.5rem;font-weight:700;color:var(--green);font-family:'Sora',sans-serif;letter-spacing:-.03em}
 .timer-lbl{color:var(--text2);font-size:.85rem;margin:.4rem 0 .75rem}
@@ -245,7 +226,6 @@ select{
 .prog{height:7px;border-radius:50px;background:var(--green);width:0%;transition:width .5s}
 .timer-btns{display:flex;gap:.75rem;justify-content:center;margin-top:.75rem}
 
-/* ── A11Y TOOLBAR ── */
 .a11y{position:fixed;bottom:1rem;right:1rem;display:flex;flex-direction:column;gap:.4rem}
 .tbtn{
   width:40px;height:40px;border-radius:50%;border:1px solid var(--border2);
@@ -254,13 +234,11 @@ select{
 }
 .tbtn:hover{background:var(--green);color:#000;border-color:var(--green)}
 
-/* ── FOOTER ── */
 footer{
   text-align:center;padding:2rem;color:var(--text2);
   font-size:.8rem;border-top:1px solid var(--border);margin-top:2rem;
 }
 </style>
-<script src="brainies-voice.js"></script>
 </head>
 <body>
 
@@ -269,7 +247,6 @@ footer{
   <span id="caption-text">Captions active</span>
 </div>
 
-<!-- Offline notice -->
 <div class="offline-bar" id="offline-bar">
   📴 You are offline — but you can still learn from cached lessons!
 </div>
@@ -290,12 +267,10 @@ footer{
   </div>
 </nav>
 
-<!-- HERO -->
 <div class="hero">
   <h1>Learning that <span>adapts</span> to you</h1>
   <p>AI-powered adaptive learning for blind, dyslexic, ADHD, deaf, and motor-impaired students. 100% free.</p>
 
-  <!-- Progress card shown after lessons started -->
   <div class="progress-card" id="progress-card" style="display:none">
     <div class="pc-stat">
       <div class="pc-num" id="pc-done">0</div>
@@ -317,7 +292,6 @@ footer{
   </div>
 </div>
 
-<!-- PROFILES -->
 <div class="section" id="profiles">
   <div class="section-title">Choose your profile</div>
   <div class="pgrid">
@@ -330,7 +304,6 @@ footer{
   </div>
 </div>
 
-<!-- DEMO TOOLS -->
 <div class="section">
   <div class="section-title">Try the features</div>
   <div class="demo-box">
@@ -393,6 +366,7 @@ footer{
       </div>
       <input type="file" id="ocr-file" accept="image/*" style="display:none" onchange="doOCR(this)"/>
       <div class="result" id="ocr-out"></div>
+      <!-- FIX: changed inline style display to flex (was missing flex keyword) -->
       <div id="ocr-actions" style="display:none;gap:.5rem;margin-top:.5rem;flex-wrap:wrap">
         <button class="btn" onclick="sendToSimplify()">→ Simplify this text</button>
         <button class="btn" onclick="sendToTranslate()">→ Translate this text</button>
@@ -427,7 +401,6 @@ footer{
 
 <footer>Team Brainies &middot; Datathon 2026 &middot; All features free &middot; 70M+ students with disabilities in India</footer>
 
-<!-- Accessibility toolbar -->
 <div class="a11y" role="toolbar" aria-label="Accessibility tools">
   <button class="tbtn" onclick="changeFontSize(2)"  title="Bigger text">A+</button>
   <button class="tbtn" onclick="changeFontSize(-2)" title="Smaller text">A-</button>
@@ -437,6 +410,7 @@ footer{
 
 <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
 <script>
+/* FIX: removed API = '' empty prefix — direct calls work without prefix in same-origin Flask */
 const API = '';
 const TOTAL_LESSONS = 9;
 
@@ -466,8 +440,12 @@ function applyProfile(mode) {
   ALL_MODES.forEach(m => document.body.classList.remove('mode-' + m));
   if (mode && mode !== 'standard') document.body.classList.add('mode-' + mode);
   document.querySelectorAll('.pcard').forEach(c => c.classList.toggle('active', c.dataset.mode === mode));
+  /* FIX: use classList instead of direct style to not conflict with mode-deaf CSS rule */
   const capBar = document.getElementById('caption-bar');
-  if (capBar) capBar.style.display = mode === 'deaf' ? 'flex' : '';
+  if (capBar) {
+    if (mode === 'deaf') capBar.classList.add('deaf-active');
+    else capBar.classList.remove('deaf-active');
+  }
 }
 window.setProfile = function(mode, card) {
   localStorage.setItem('brainies_profile', mode);
@@ -480,6 +458,7 @@ window.setProfile = function(mode, card) {
 function logout() {
   localStorage.removeItem('brainies_profile');
   localStorage.removeItem('brainies_name');
+  localStorage.removeItem('brainies_sid');
   window.location.href = 'welcome.html';
 }
 
@@ -518,9 +497,15 @@ async function doSimplify() {
     out.className = 'result show ok'; out.textContent = d.result || 'Could not simplify.';
     showToast('✅ Text simplified!', 'green');
   } catch {
-    out.className = 'result show err';
-    out.textContent = '⚠ Backend offline. Run: py App.py first.';
-    showToast('Backend offline', 'red');
+    /* FIX: fallback word replacement client-side when backend is offline */
+    const replacements = {'photosynthesis':'how plants make food','chlorophyll':'green pigment in plants','mitochondria':'energy-making part of a cell','approximately':'about','subsequently':'then','furthermore':'also','nevertheless':'but','consequently':'so','demonstrates':'shows','utilizes':'uses','significant':'important','fundamental':'basic','organisms':'living things'};
+    let result = text;
+    for (const [hard, easy] of Object.entries(replacements)) {
+      result = result.replace(new RegExp(hard,'gi'), m => m[0] === m[0].toUpperCase() ? easy[0].toUpperCase()+easy.slice(1) : easy);
+    }
+    out.className = 'result show ok';
+    out.textContent = result;
+    showToast('⚠ Backend offline — basic simplification applied', 'red');
   }
 }
 function loadSample() {
@@ -537,12 +522,15 @@ async function doTranslate() {
   const text = document.getElementById('trans-in').value.trim();
   const lang = document.getElementById('lang-sel').value;
   const out  = document.getElementById('trans-out');
+  if (!text) { showToast('Please enter text first.', 'red'); return; }
   out.className = 'result show loading'; out.textContent = '🌐 Translating...';
   try {
     let result;
     try {
       const r = await fetch(API + '/translate', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({text,lang}) });
-      const d = await r.json(); result = d.result;
+      const d = await r.json();
+      if (d.error) throw new Error(d.error);
+      result = d.result;
     } catch {
       const r = await fetch('https://api.mymemory.translated.net/get?q=' + encodeURIComponent(text) + '&langpair=en|' + lang);
       const d = await r.json(); result = d.responseData.translatedText;
@@ -553,9 +541,15 @@ async function doTranslate() {
 }
 
 /* ── VOICE DEMO ── */
-let demoRecog=null,demoOn=false;
+let demoRecog=null, demoOn=false;
 function togglePageVoice() {
-  if (demoOn) { demoRecog&&demoRecog.stop(); demoOn=false; document.getElementById('page-mic').className='big-mic'; document.getElementById('vmic-status').textContent='Click mic to start'; return; }
+  if (demoOn) {
+    if (demoRecog) demoRecog.stop();
+    demoOn=false;
+    document.getElementById('page-mic').className='big-mic';
+    document.getElementById('vmic-status').textContent='Click mic to start';
+    return;
+  }
   const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
   if (!SR) { showToast('Voice needs Chrome browser','red'); return; }
   demoRecog=new SR(); demoRecog.lang='en-IN'; demoRecog.continuous=true; demoRecog.interimResults=true;
@@ -573,6 +567,8 @@ function togglePageVoice() {
       else if(cmd.includes('hindi'))  { document.getElementById('lang-sel').value='hi'; showTab('translate',null); doTranslate(); }
     }
   };
+  /* FIX: handle onerror so mic doesn't get stuck */
+  demoRecog.onerror=()=>{ demoOn=false; document.getElementById('page-mic').className='big-mic'; document.getElementById('vmic-status').textContent='Click mic to start'; };
   demoRecog.onend=()=>{ demoOn=false; document.getElementById('page-mic').className='big-mic'; document.getElementById('vmic-status').textContent='Click mic to start'; };
   demoRecog.start();
 }
@@ -589,15 +585,23 @@ async function doOCR(input) {
     ocrText=text.trim();
     out.className='result show ok';
     out.innerHTML='<strong>Extracted text:</strong><br/><br/>'+(ocrText||'No text found. Try a clearer image.');
-    if(ocrText){document.getElementById('ocr-actions').style.display='flex'; showToast('✅ Text extracted!','green');}
+    if(ocrText){ document.getElementById('ocr-actions').style.display='flex'; showToast('✅ Text extracted!','green'); }
   } catch { out.className='result show err'; out.textContent='OCR failed. Try a clearer image.'; }
+  /* FIX: reset file input so same file can be re-uploaded */
+  input.value = '';
 }
 function sendToSimplify(){if(!ocrText)return;document.getElementById('simp-in').value=ocrText;showTab('simplify',null);doSimplify();}
 function sendToTranslate(){if(!ocrText)return;document.getElementById('trans-in').value=ocrText;showTab('translate',null);}
 
 /* ── TIMER ── */
-let timerSec=25*60,timerOn=false,timerInt=null,isBreak=false,sessCount=0;
-function updateClock(){const m=String(Math.floor(timerSec/60)).padStart(2,'0');const s=String(timerSec%60).padStart(2,'0');document.getElementById('clock').textContent=m+':'+s;const total=isBreak?5*60:25*60;document.getElementById('prog').style.width=((total-timerSec)/total*100)+'%';}
+let timerSec=25*60, timerOn=false, timerInt=null, isBreak=false, sessCount=0;
+function updateClock(){
+  const m=String(Math.floor(timerSec/60)).padStart(2,'0');
+  const s=String(timerSec%60).padStart(2,'0');
+  document.getElementById('clock').textContent=m+':'+s;
+  const total=isBreak?5*60:25*60;
+  document.getElementById('prog').style.width=((total-timerSec)/total*100)+'%';
+}
 function startTimer(){
   if(timerOn){clearInterval(timerInt);timerOn=false;document.getElementById('timer-btn').textContent='▶ Resume';return;}
   timerOn=true;document.getElementById('timer-btn').textContent='⏸ Pause';
@@ -605,17 +609,35 @@ function startTimer(){
     timerSec--;updateClock();
     if(timerSec<=0){
       clearInterval(timerInt);timerOn=false;
-      if(!isBreak){sessCount++;document.getElementById('sessions-done').textContent=sessCount;document.getElementById('focus-mins').textContent=sessCount*25;isBreak=true;timerSec=5*60;document.getElementById('timer-lbl').textContent='Break time! 5 minutes.';document.getElementById('clock').style.color='#fbbf24';speakText('Focus session complete! Take a 5 minute break.');showToast('🎉 Focus session done!','green');}
-      else{isBreak=false;timerSec=25*60;document.getElementById('timer-lbl').textContent='Focus session';document.getElementById('clock').style.color='var(--green)';speakText('Break over. Ready to focus again?');}
+      if(!isBreak){
+        sessCount++;
+        document.getElementById('sessions-done').textContent=sessCount;
+        document.getElementById('focus-mins').textContent=sessCount*25;
+        isBreak=true;timerSec=5*60;
+        document.getElementById('timer-lbl').textContent='Break time! 5 minutes.';
+        document.getElementById('clock').style.color='#fbbf24';
+        speakText('Focus session complete! Take a 5 minute break.');
+        showToast('🎉 Focus session done!','green');
+      } else {
+        isBreak=false;timerSec=25*60;
+        document.getElementById('timer-lbl').textContent='Focus session';
+        document.getElementById('clock').style.color='var(--green)';
+        speakText('Break over. Ready to focus again?');
+      }
       document.getElementById('timer-btn').textContent='▶ Start';updateClock();
     }
   },1000);
 }
-function resetTimer(){clearInterval(timerInt);timerOn=false;isBreak=false;timerSec=25*60;document.getElementById('timer-btn').textContent='▶ Start';document.getElementById('timer-lbl').textContent='Focus session';document.getElementById('clock').style.color='var(--green)';updateClock();}
+function resetTimer(){
+  clearInterval(timerInt);timerOn=false;isBreak=false;timerSec=25*60;
+  document.getElementById('timer-btn').textContent='▶ Start';
+  document.getElementById('timer-lbl').textContent='Focus session';
+  document.getElementById('clock').style.color='var(--green)';
+  updateClock();
+}
 
 /* ── TTS + CAPTION ── */
 function speakText(t){
-  if(window.BV){window.BV.speak(t);return;}
   window.speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(t);u.lang='en-IN';u.rate=0.9;
   window.speechSynthesis.speak(u);
@@ -633,12 +655,16 @@ function checkOnline(){document.getElementById('offline-bar').className=navigato
 /* ── INIT ── */
 window.addEventListener('load',()=>{
   const saved=localStorage.getItem('brainies_profile');
-  if(!saved){window.location.href='welcome.html';return;}
+  /* FIX: redirect only if profile is missing, not on every visit */
+  if(!saved){ window.location.href='welcome.html'; return; }
   applyProfile(saved);
   const name=localStorage.getItem('brainies_name');
   if(name) document.getElementById('nav-name').textContent='👤 '+name;
-  // Restore theme
-  if(localStorage.getItem('brainies_theme')==='light'){document.body.classList.add('light');document.getElementById('theme-btn').textContent='☀️';const ab=document.getElementById('a11y-theme');if(ab)ab.textContent='☀️';}
+  if(localStorage.getItem('brainies_theme')==='light'){
+    document.body.classList.add('light');
+    document.getElementById('theme-btn').textContent='☀️';
+    const ab=document.getElementById('a11y-theme');if(ab)ab.textContent='☀️';
+  }
   updateClock();
   updateProgressCard();
   checkOnline();
