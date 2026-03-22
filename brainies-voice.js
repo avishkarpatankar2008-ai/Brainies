@@ -44,9 +44,27 @@
     const { text, cb } = _q.shift();
     if (window.speechSynthesis.speaking || window.speechSynthesis.pending)
       window.speechSynthesis.cancel();
+
     const u = new SpeechSynthesisUtterance(text);
     u.lang = LANG; u.rate = 1.0; u.volume = 1; u.pitch = 1;
-    u.onend = u.onerror = () => { _busy = false; if (cb) cb(); _drain(); };
+
+    // ── PAUSE ALL MICS while speaking ──────────────────
+    u.onstart = () => { _muteMics(); };
+
+    // ── RESUME MICS only after speech fully ends ────────
+    u.onend = () => {
+      _busy = false;
+      _unmuteMics();
+      if (cb) cb();
+      _drain();
+    };
+    u.onerror = () => {
+      _busy = false;
+      _unmuteMics();
+      if (cb) cb();
+      _drain();
+    };
+
     window.speechSynthesis.speak(u);
     const cap = document.getElementById('caption-text') || document.getElementById('cap-txt');
     if (cap) cap.textContent = text;
@@ -55,6 +73,37 @@
   function stopSpeaking() {
     _q = []; _busy = false;
     window.speechSynthesis.cancel();
+    _unmuteMics(); // always resume mics when speech is force-stopped
+  }
+
+  /* ── MIC MUTE / UNMUTE ────────────────────────────────
+     Called by TTS drain so mics are always silent while
+     the app is reading. Resumes automatically on onend.
+  ─────────────────────────────────────────────────────── */
+  let _micMuted = false;
+
+  function _muteMics() {
+    if (_micMuted) return;
+    _micMuted = true;
+    // Pause wake listener
+    if (_wakeActive && _wake) { try { _wake.stop(); } catch {} }
+    // Pause command session mic
+    if (_cmdActive && _cmd)   { try { _cmd.stop();  } catch {} }
+    // Pause always-on mic (blind mode)
+    if (_aoActive && _ao)     { try { _ao.stop();   } catch {} }
+  }
+
+  function _unmuteMics() {
+    if (!_micMuted) return;
+    _micMuted = false;
+    // Restart whatever was running before speech
+    if (isBlind()) {
+      _scheduleAO(120);       // restart always-on mic
+    } else if (_sessionOpen) {
+      setTimeout(_startCmd, 120); // restart command session mic
+    } else {
+      _scheduleWake(200);     // restart silent wake listener
+    }
   }
 
   /* ═══════════════════════════════════════════════════
