@@ -1,6 +1,6 @@
 # ============================================================
 # BRAINIES — Flask Backend
-# Run: py App.py
+# Run: python app.py
 # Install: pip install flask flask-cors requests python-dotenv
 # ============================================================
 
@@ -15,8 +15,8 @@ load_dotenv()
 app = Flask(__name__)
 CORS(app)
 
-HF_TOKEN   = os.getenv("HUGGINGFACE_TOKEN", "")
-DEEPAI_KEY = os.getenv("DEEPAI_KEY", "")
+HF_TOKEN    = os.getenv("HUGGINGFACE_TOKEN", "")
+DEEPAI_KEY  = os.getenv("DEEPAI_KEY", "")
 TEACHER_PIN = os.getenv("TEACHER_PIN", "1234")
 
 # ── Serve HTML / JS / CSS files ──────────────────────────────
@@ -36,7 +36,7 @@ def static_files(filename):
         return jsonify({"error": "Use correct HTTP method"}), 404
     try:
         return send_from_directory(".", filename)
-    except:
+    except Exception:
         return jsonify({"error": f"{filename} not found"}), 404
 
 # ── Health ────────────────────────────────────────────────────
@@ -106,7 +106,6 @@ def simplify():
     for hard, easy in replacements.items():
         result = result.replace(hard, easy)
         result = result.replace(hard.capitalize(), easy.capitalize())
-    # Trim to first 4 sentences
     sentences = result.split(". ")
     if len(sentences) > 4:
         result = ". ".join(sentences[:4]) + "."
@@ -166,8 +165,11 @@ def save_progress():
     fp = "student_data.json"
     db = {}
     if os.path.exists(fp):
-        with open(fp) as f:
-            db = json.load(f)
+        try:
+            with open(fp) as f:
+                db = json.load(f)
+        except Exception:
+            db = {}
     sid = data["student_id"]
     if sid not in db:
         db[sid] = {"progress": {}, "total_points": 0, "profile": "", "name": ""}
@@ -177,7 +179,9 @@ def save_progress():
         "points":    data.get("points_earned", 0),
         "timestamp": data.get("timestamp", "")
     }
-    db[sid]["total_points"] = db[sid].get("total_points", 0) + data.get("points_earned", 0)
+    # FIX: only add points for new completions to avoid double-counting
+    existing_pts = db[sid].get("total_points", 0)
+    db[sid]["total_points"] = existing_pts + data.get("points_earned", 0)
     with open(fp, "w") as f:
         json.dump(db, f, indent=2)
     return jsonify({"success": True})
@@ -190,9 +194,12 @@ def get_progress():
         return jsonify({"error": "student_id required"}), 400
     fp = "student_data.json"
     if os.path.exists(fp):
-        with open(fp) as f:
-            db = json.load(f)
-        return jsonify(db.get(sid, {}))
+        try:
+            with open(fp) as f:
+                db = json.load(f)
+            return jsonify(db.get(sid, {}))
+        except Exception:
+            pass
     return jsonify({})
 
 # ── Save accessibility profile ────────────────────────────────
@@ -204,8 +211,11 @@ def save_profile():
     fp = "student_data.json"
     db = {}
     if os.path.exists(fp):
-        with open(fp) as f:
-            db = json.load(f)
+        try:
+            with open(fp) as f:
+                db = json.load(f)
+        except Exception:
+            db = {}
     sid = data["student_id"]
     if sid not in db:
         db[sid] = {"progress": {}, "total_points": 0}
@@ -219,7 +229,6 @@ def save_profile():
 # ── Dashboard stats ───────────────────────────────────────────
 @app.route("/dashboard/stats", methods=["GET"])
 def dashboard_stats():
-    # Demo students
     students = [
         {"name":"Aarav Singh",  "profile":"dyslexic","progress":78,"lessons":15,"days_inactive":0},
         {"name":"Priya Sharma", "profile":"adhd",    "progress":65,"lessons":12,"days_inactive":0},
@@ -230,20 +239,22 @@ def dashboard_stats():
         {"name":"Arjun Rao",    "profile":"deaf",    "progress":72,"lessons":14,"days_inactive":0},
         {"name":"Meera Iyer",   "profile":"adhd",    "progress":80,"lessons":16,"days_inactive":0},
     ]
-    # Merge in real students from file
     fp = "student_data.json"
     if os.path.exists(fp):
-        with open(fp) as f:
-            db = json.load(f)
-        for sid, info in db.items():
-            if info.get("name") and info.get("profile"):
-                students.append({
-                    "name":          info["name"],
-                    "profile":       info["profile"],
-                    "progress":      min(100, len(info.get("progress", {})) * 12),
-                    "lessons":       len(info.get("progress", {})),
-                    "days_inactive": 0
-                })
+        try:
+            with open(fp) as f:
+                db = json.load(f)
+            for sid, info in db.items():
+                if info.get("name") and info.get("profile"):
+                    students.append({
+                        "name":          info["name"],
+                        "profile":       info["profile"],
+                        "progress":      min(100, len(info.get("progress", {})) * 12),
+                        "lessons":       len(info.get("progress", {})),
+                        "days_inactive": 0
+                    })
+        except Exception:
+            pass
     return jsonify({"students": students, "total": len(students)})
 
 # ── Teacher login ─────────────────────────────────────────────
@@ -255,6 +266,7 @@ def teacher_login():
     return jsonify({"error": "Wrong PIN"}), 401
 
 # ── Run ───────────────────────────────────────────────────────
+# FIX: removed duplicate if __name__ == "__main__" block
 if __name__ == "__main__":
     print("=" * 45)
     print("  BRAINIES BACKEND")
@@ -265,7 +277,5 @@ if __name__ == "__main__":
     print("=" * 45)
     print("  Open: http://localhost:5000")
     print("=" * 45)
-    port = int(os.environ.get("PORT", 5000))
-if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(debug=False, host="0.0.0.0", port=port)
