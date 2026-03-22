@@ -1,5 +1,5 @@
 # ============================================================
-# BRAINIES — Flask Backend
+# BRAINIES — Flask Backend  (Performance Edition)
 # Run: python app.py
 # Install: pip install flask flask-cors requests python-dotenv
 # ============================================================
@@ -19,13 +19,22 @@ HF_TOKEN    = os.getenv("HUGGINGFACE_TOKEN", "")
 DEEPAI_KEY  = os.getenv("DEEPAI_KEY", "")
 TEACHER_PIN = os.getenv("TEACHER_PIN", "1234")
 
-# ── Serve HTML / JS / CSS files ──────────────────────────────
 API_PREFIXES = [
     "simplify","translate","describe","save-progress",
     "get-progress","save-profile","get-profile",
     "dashboard/stats","teacher-login","health","api"
 ]
 
+# ── Add response caching headers helper ──────────────────────
+def _cached(resp, seconds=0):
+    """Add cache-control headers. 0 = no-store (API). >0 = public cache."""
+    if seconds:
+        resp.headers['Cache-Control'] = f'public, max-age={seconds}'
+    else:
+        resp.headers['Cache-Control'] = 'no-store'
+    return resp
+
+# ── Serve HTML / JS / CSS files ──────────────────────────────
 @app.route("/")
 def root():
     return send_from_directory(".", "welcome.html")
@@ -42,13 +51,9 @@ def static_files(filename):
 # ── Health ────────────────────────────────────────────────────
 @app.route("/health")
 def health():
-    return jsonify({
-        "status": "ok",
-        "huggingface": bool(HF_TOKEN),
-        "deepai": bool(DEEPAI_KEY)
-    })
+    return _cached(jsonify({"status": "ok", "huggingface": bool(HF_TOKEN), "deepai": bool(DEEPAI_KEY)}))
 
-# ── Simplify text with AI ─────────────────────────────────────
+# ── Simplify text ─────────────────────────────────────────────
 @app.route("/simplify", methods=["POST"])
 def simplify():
     data = request.get_json()
@@ -58,32 +63,25 @@ def simplify():
     if not text:
         return jsonify({"error": "empty text"}), 400
 
-    # Try HuggingFace BART
+    # Try HuggingFace BART — PERF: reduced timeout 30→8s, fail fast to fallback
     if HF_TOKEN:
         try:
             r = requests.post(
                 "https://api-inference.huggingface.co/models/facebook/bart-large-cnn",
                 headers={"Authorization": f"Bearer {HF_TOKEN}"},
-                json={
-                    "inputs": text,
-                    "parameters": {
-                        "max_length": 130,
-                        "min_length": 25,
-                        "do_sample": False
-                    }
-                },
-                timeout=30
+                json={"inputs": text, "parameters": {"max_length": 130, "min_length": 25, "do_sample": False}},
+                timeout=8  # ← was 30s — caused 30s hang before fallback
             )
             if r.status_code == 200:
                 d = r.json()
                 if isinstance(d, list) and d:
                     simplified = d[0].get("summary_text", "")
                     if simplified:
-                        return jsonify({"result": simplified, "source": "ai"})
+                        return _cached(jsonify({"result": simplified, "source": "ai"}))
         except Exception as e:
             print(f"HuggingFace error: {e}")
 
-    # Fallback: rule-based word replacement
+    # Fallback: rule-based replacement — always fast
     replacements = {
         "photosynthesis":  "how plants make food",
         "chlorophyll":     "the green pigment in plants",
@@ -109,7 +107,7 @@ def simplify():
     sentences = result.split(". ")
     if len(sentences) > 4:
         result = ". ".join(sentences[:4]) + "."
-    return jsonify({"result": result, "source": "fallback"})
+    return _cached(jsonify({"result": result, "source": "fallback"}))
 
 # ── Translate text ────────────────────────────────────────────
 @app.route("/translate", methods=["POST"])
@@ -126,11 +124,11 @@ def translate():
         r = requests.get(
             "https://api.mymemory.translated.net/get",
             params={"q": text, "langpair": f"en|{lang}"},
-            timeout=15
+            timeout=8  # ← was 15s
         )
         d = r.json()
         if d.get("responseStatus") == 200:
-            return jsonify({"result": d["responseData"]["translatedText"]})
+            return _cached(jsonify({"result": d["responseData"]["translatedText"]}))
     except Exception as e:
         print(f"Translation error: {e}")
     return jsonify({"error": "Translation failed"}), 500
@@ -147,14 +145,14 @@ def describe():
                 "https://api.deepai.org/api/image-captioning",
                 data={"image": image_url},
                 headers={"api-key": DEEPAI_KEY},
-                timeout=20
+                timeout=10  # ← was 20s
             )
             if r.status_code == 200:
                 desc = r.json().get("output", fallback)
-                return jsonify({"description": desc, "source": "deepai"})
+                return _cached(jsonify({"description": desc, "source": "deepai"}))
         except Exception as e:
             print(f"DeepAI error: {e}")
-    return jsonify({"description": fallback, "source": "fallback"})
+    return _cached(jsonify({"description": fallback, "source": "fallback"}))
 
 # ── Save student progress ─────────────────────────────────────
 @app.route("/save-progress", methods=["POST"])
@@ -179,12 +177,10 @@ def save_progress():
         "points":    data.get("points_earned", 0),
         "timestamp": data.get("timestamp", "")
     }
-    # FIX: only add points for new completions to avoid double-counting
-    existing_pts = db[sid].get("total_points", 0)
-    db[sid]["total_points"] = existing_pts + data.get("points_earned", 0)
+    db[sid]["total_points"] = db[sid].get("total_points", 0) + data.get("points_earned", 0)
     with open(fp, "w") as f:
         json.dump(db, f, indent=2)
-    return jsonify({"success": True})
+    return _cached(jsonify({"success": True}))
 
 # ── Get student progress ──────────────────────────────────────
 @app.route("/get-progress", methods=["GET"])
@@ -197,10 +193,10 @@ def get_progress():
         try:
             with open(fp) as f:
                 db = json.load(f)
-            return jsonify(db.get(sid, {}))
+            return _cached(jsonify(db.get(sid, {})))
         except Exception:
             pass
-    return jsonify({})
+    return _cached(jsonify({}))
 
 # ── Save accessibility profile ────────────────────────────────
 @app.route("/save-profile", methods=["POST"])
@@ -224,7 +220,7 @@ def save_profile():
     with open(fp, "w") as f:
         json.dump(db, f, indent=2)
     print(f"  Profile saved: {data.get('name','?')} → {data['profile']}")
-    return jsonify({"success": True})
+    return _cached(jsonify({"success": True}))
 
 # ── Dashboard stats ───────────────────────────────────────────
 @app.route("/dashboard/stats", methods=["GET"])
@@ -255,18 +251,17 @@ def dashboard_stats():
                     })
         except Exception:
             pass
-    return jsonify({"students": students, "total": len(students)})
+    return _cached(jsonify({"students": students, "total": len(students)}))
 
 # ── Teacher login ─────────────────────────────────────────────
 @app.route("/teacher-login", methods=["POST"])
 def teacher_login():
     data = request.get_json() or {}
     if data.get("pin") == TEACHER_PIN:
-        return jsonify({"success": True})
+        return _cached(jsonify({"success": True}))
     return jsonify({"error": "Wrong PIN"}), 401
 
 # ── Run ───────────────────────────────────────────────────────
-# FIX: removed duplicate if __name__ == "__main__" block
 if __name__ == "__main__":
     print("=" * 45)
     print("  BRAINIES BACKEND")
