@@ -484,7 +484,19 @@ function startTimer(){
 }
 function resetTimer(){clearInterval(timerInt);timerOn=false;isBreak=false;timerSec=25*60;document.getElementById('timer-btn').textContent='▶ Start';document.getElementById('timer-lbl').textContent='Focus session';document.getElementById('clock').style.color='var(--green)';updateClock();}
 
-function speakText(t){window.speechSynthesis.cancel();const u=new SpeechSynthesisUtterance(t);u.lang='en-IN';u.rate=0.92;window.speechSynthesis.speak(u);const cap=document.getElementById('caption-text');if(cap)cap.textContent=t;}
+function speakText(t){
+  // Stop demo mic while speaking — prevents mic hearing TTS output
+  if(demoOn && demoRecog){ try{ demoRecog.stop(); }catch{} }
+  if(window.speechSynthesis.speaking||window.speechSynthesis.pending)
+    window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(t);
+  u.lang='en-IN'; u.rate=1.0;
+  const cap=document.getElementById('caption-text');
+  if(cap) cap.textContent=t;
+  window.speechSynthesis.speak(u);
+  // Note: demo mic does NOT auto-restart after speech —
+  // user must click the mic button manually (by design for demo tab)
+}
 function toggleTTS(){speakText(document.body.innerText.substring(0,600));}
 
 let fs=16;
