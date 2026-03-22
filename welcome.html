@@ -451,8 +451,15 @@ function onCommand(txt) {
   if (/smaller|decrease/.test(txt)) { changeFontSize(-2); speak('Smaller.'); return; }
 }
 
-function speakInstructions() {
-  speak('Welcome to Brainies. Step 1: say your name, for example my name is Priya. Step 2: say your profile — blind, dyslexic, ADHD, deaf, motor, or standard. Step 3: say enter. Say repeat anytime.');
+function speakInstructions(cb) {
+  speak(
+    'Welcome to Brainies. ' +
+    'Step 1: say your name — for example, my name is Priya. ' +
+    'Step 2: say your profile — blind, dyslexic, ADHD, deaf, motor, or standard. ' +
+    'Step 3: say enter to open the app. ' +
+    'Say repeat anytime to hear this again.',
+    cb  // mic starts only after this finishes
+  );
 }
 
 /* ── UI */
@@ -511,7 +518,8 @@ window.addEventListener('load', () => {
   }
   pick(document.getElementById('std-btn'));
   document.getElementById('go-btn').disabled = true;
-  setTimeout(() => { speakInstructions(); startVoice(); }, 300); // ← was 500ms
+  // Speak full instructions first, then turn on mic after speech ends
+  setTimeout(() => { speakInstructions(startVoice); }, 300);
 });
 
 document.addEventListener('keydown', e => {
