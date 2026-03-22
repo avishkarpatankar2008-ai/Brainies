@@ -454,11 +454,11 @@
 
   /* ═══════════════════════════════════════════════════
      PAGE INTRO
-     FIX: startListening() runs IMMEDIATELY alongside
-     speech — not as a callback after speech ends.
-     Old code: speak(text, startListening)
-       → mic stayed off for entire 5-10 second greeting
-     New code: start mic first, then speak in parallel
+     Speaks full instructions first, THEN starts the
+     mic only after speech has completely finished.
+     This prevents the mic from picking up TTS output
+     and breaking recognition.
+     speak(text, callback) — callback fires on onend.
   ═══════════════════════════════════════════════════ */
   function _intro() {
     const pg      = _page();
@@ -466,16 +466,34 @@
     const name    = localStorage.getItem('brainies_name') || '';
     const greet   = name ? 'Welcome back ' + name + '. ' : '';
 
-    // Start mic immediately — do not wait for speech to finish
-    if (alwaysOn()) startListening();
-
+    // speak(text, cb) — cb runs after speech fully ends, then mic starts
     if (pg === 'home') {
-      speak(greet + 'Your profile is ' + profile + '. Say open lessons to start. Say help for commands.');
+      speak(
+        greet + 'Your profile is ' + profile + '. ' +
+        'Say open lessons to start learning. ' +
+        'Say help for all commands.',
+        startListening   // mic turns on AFTER instructions finish
+      );
     } else if (pg === 'lesson') {
       const h = document.querySelector('.lesson-title');
-      speak(greet + 'Lesson: ' + (h ? h.textContent.trim() + '. ' : '') + 'Say read lesson or quiz. Say help for all commands.');
+      speak(
+        greet +
+        'You are on lesson: ' + (h ? h.textContent.trim() + '. ' : '') +
+        'Say read lesson to hear the content. ' +
+        'Say read quiz to hear the question. ' +
+        'Say next to go forward. Say help for all commands.',
+        startListening
+      );
     } else if (pg === 'dashboard') {
-      speak(greet + 'Teacher dashboard. Say total students or help.');
+      speak(
+        greet + 'Teacher dashboard. ' +
+        'Say total students, average progress, or refresh. ' +
+        'Say help for all commands.',
+        startListening
+      );
+    } else {
+      // Fallback for any other page
+      startListening();
     }
   }
 
