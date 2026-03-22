@@ -395,8 +395,6 @@ function toast(msg,type){
 let _ttsQueue=[], _ttsBusy=false;
 function speak(txt){
   if(!('speechSynthesis' in window))return;
-  // Clear queue but let current utterance finish naturally
-  // (cancel+immediate speak causes the 300ms gap / stutter)
   _ttsQueue=[txt];
   if(!_ttsBusy)_ttsFlush();
 }
@@ -404,16 +402,35 @@ function _ttsFlush(){
   if(!_ttsQueue.length){_ttsBusy=false;return;}
   _ttsBusy=true;
   const txt=_ttsQueue.shift();
+  if(window.speechSynthesis.speaking||window.speechSynthesis.pending)
+    window.speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(txt);
-  u.lang='en-IN';u.rate=0.92;u.pitch=1;
-  u.onend=()=>{_ttsBusy=false;_ttsFlush();};
-  u.onerror=()=>{_ttsBusy=false;_ttsFlush();};
-  window.speechSynthesis.cancel(); // cancel stale, then speak
+  u.lang='en-IN';u.rate=1.0;u.pitch=1;
+  // Stop mic while app is speaking — mic would pick up TTS and break recognition
+  u.onstart=()=>{
+    if(vOn&&vRecog){try{vRecog.stop();}catch{}}
+    clearTimeout(vRestartTimer);
+  };
+  // Resume mic only after speech fully ends
+  u.onend=()=>{
+    _ttsBusy=false;
+    _ttsFlush();
+    if(!vPaused&&!_ttsBusy) scheduleVRestart(150);
+  };
+  u.onerror=()=>{
+    _ttsBusy=false;
+    _ttsFlush();
+    if(!vPaused&&!_ttsBusy) scheduleVRestart(150);
+  };
   window.speechSynthesis.speak(u);
   const c=document.getElementById('cap-txt');
   if(c)c.textContent=txt;
 }
-function stopTTS(){_ttsQueue=[];_ttsBusy=false;window.speechSynthesis.cancel();}
+function stopTTS(){
+  _ttsQueue=[];_ttsBusy=false;
+  window.speechSynthesis.cancel();
+  if(!vPaused) scheduleVRestart(150); // resume mic when speech force-stopped
+}
 
 /* ─────────────────────────────────────────────────────────
    FONT SIZE
