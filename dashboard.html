@@ -26,7 +26,6 @@ body.light{
 }
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);transition:background .25s,color .25s}
 
-/* ── NAV ── */
 nav{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;padding:.85rem 1.75rem;background:var(--bg2);border-bottom:1px solid var(--border)}
 .nav-logo{color:var(--green);font-size:1.1rem;font-weight:700;text-decoration:none;font-family:'Sora',sans-serif}
 .nav-badge{font-size:.72rem;padding:.2rem .6rem;border-radius:20px;background:rgba(96,165,250,.1);border:1px solid rgba(96,165,250,.25);color:var(--blue)}
@@ -36,42 +35,38 @@ nav a:hover,nav button:hover{border-color:var(--green);color:var(--green)}
 .btn-danger{border-color:rgba(248,113,113,.3)!important;color:var(--red)!important}
 .btn-danger:hover{border-color:var(--red)!important;background:rgba(248,113,113,.08)!important}
 
-/* ── TOAST ── */
 .toast-wrap{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);z-index:9000;display:flex;flex-direction:column;gap:.4rem;align-items:center;pointer-events:none}
 .toast{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:.5rem 1.1rem;font-size:.82rem;color:var(--text);animation:tIn .2s ease;white-space:nowrap}
 .toast.ok{background:var(--green-dim);border-color:var(--green);color:var(--green)}
 @keyframes tIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 
-/* ── MAIN ── */
 .main{max-width:1080px;margin:0 auto;padding:2rem 1.75rem}
 .page-title{font-family:'Sora',sans-serif;font-size:1.4rem;font-weight:700;margin-bottom:.25rem}
 .page-sub{font-size:.84rem;color:var(--text2);margin-bottom:1.75rem}
 
-/* ── STAT CARDS ── */
 .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(155px,1fr));gap:1rem;margin-bottom:2rem}
 .stat{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.1rem}
 .stat-n{font-family:'Sora',sans-serif;font-size:2rem;font-weight:800;letter-spacing:-.02em}
 .stat-l{font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;margin-top:.25rem}
 .stat.g .stat-n{color:var(--green)}.stat.b .stat-n{color:var(--blue)}.stat.r .stat-n{color:var(--red)}.stat.o .stat-n{color:var(--gold)}
 
-/* ── CHARTS ── */
 .charts{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.5rem}
 @media(max-width:680px){.charts{grid-template-columns:1fr}}
 .chart-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem}
 .chart-title{font-size:.85rem;font-weight:600;margin-bottom:1rem;color:var(--text2)}
 .chart-wrap{position:relative;height:190px}
 
-/* ── EXPORT ── */
 .export-row{display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:1.5rem;align-items:center}
 .export-row button{padding:.5rem 1.1rem;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:.82rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:all .2s}
 .export-row button:hover{border-color:var(--green);color:var(--green)}
 
-/* ── TABLE ── */
 .table-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
 .table-toolbar{display:flex;gap:.75rem;padding:1rem 1.25rem;border-bottom:1px solid var(--border);flex-wrap:wrap;align-items:center}
 .table-toolbar input,.table-toolbar select{padding:.42rem .75rem;background:var(--bg3);border:1px solid var(--border2);border-radius:6px;color:var(--text2);font-size:.82rem;font-family:'DM Sans',sans-serif;outline:none}
 .table-toolbar input:focus,.table-toolbar select:focus{border-color:var(--green)}
 .table-toolbar input::placeholder{color:var(--text2);opacity:.6}
+/* FIX: color of select options text on dark bg */
+.table-toolbar select option{background:var(--bg3);color:var(--text)}
 .table-count{margin-left:auto;font-size:.78rem;color:var(--text2)}
 .tscroll{overflow-x:auto}
 table{width:100%;border-collapse:collapse;font-size:.83rem}
@@ -83,13 +78,11 @@ tr:hover td{background:rgba(255,255,255,.015)}
 .dot{display:inline-block;width:7px;height:7px;border-radius:50%;margin-right:.35rem;vertical-align:middle}
 .dot.g{background:var(--green)}.dot.y{background:var(--gold)}.dot.r{background:var(--red)}
 
-/* ── PROGRESS BAR IN TABLE ── */
 .pbar-wrap{display:flex;align-items:center;gap:.5rem}
 .pbar{display:inline-block;width:70px;height:6px;background:var(--bg3);border-radius:50px;overflow:hidden;vertical-align:middle}
 .pfill{height:6px;border-radius:50px;background:var(--green);transition:width .4s ease}
 .pbar-num{font-size:.82rem;font-weight:600;color:var(--text);min-width:32px}
 
-/* ── PROFILE TAGS ── */
 .tag{font-size:.68rem;padding:.18rem .5rem;border-radius:20px;font-weight:600;white-space:nowrap}
 .tag.dyslexic{background:rgba(251,191,36,.12);color:var(--gold)}
 .tag.adhd{background:rgba(167,139,250,.12);color:var(--purple)}
@@ -98,11 +91,39 @@ tr:hover td{background:rgba(255,255,255,.015)}
 .tag.motor{background:rgba(74,222,128,.12);color:var(--green)}
 .tag.standard{background:var(--bg3);color:var(--text2)}
 .alert-tag{font-size:.68rem;padding:.15rem .5rem;border-radius:20px;background:rgba(248,113,113,.15);color:var(--red);font-weight:600;margin-left:.3rem}
+
+/* FIX: login overlay for cleaner auth UX */
+#auth-overlay{
+  display:none;position:fixed;inset:0;background:var(--bg);z-index:1000;
+  align-items:center;justify-content:center;flex-direction:column;gap:1.5rem;
+}
+#auth-overlay.show{display:flex}
+.auth-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:2rem;width:min(360px,90vw);text-align:center}
+.auth-card h2{font-family:'Sora',sans-serif;font-size:1.2rem;margin-bottom:.5rem}
+.auth-card p{font-size:.84rem;color:var(--text2);margin-bottom:1.25rem}
+.auth-card input{width:100%;padding:.7rem .9rem;background:var(--bg3);border:1px solid var(--border2);border-radius:9px;color:var(--text);font-size:1rem;text-align:center;letter-spacing:.15em;outline:none;font-family:'DM Sans',sans-serif}
+.auth-card input:focus{border-color:var(--green)}
+.auth-card .auth-btn{width:100%;margin-top:.85rem;padding:.75rem;background:var(--green);color:#000;border:none;border-radius:9px;font-weight:700;cursor:pointer;font-family:'Sora',sans-serif;font-size:.95rem}
+.auth-card .auth-err{font-size:.78rem;color:var(--red);margin-top:.5rem;min-height:1.1rem}
 </style>
 </head>
 <body>
 
 <div class="toast-wrap" id="toast-wrap"></div>
+
+<!-- FIX: replaced prompt() with a proper overlay — prompt() is blocked in many browsers/environments -->
+<div id="auth-overlay">
+  <div class="auth-card">
+    <div style="font-size:2rem;margin-bottom:.5rem">🧠</div>
+    <h2>Teacher Login</h2>
+    <p>Enter your PIN to access the class dashboard.</p>
+    <input type="password" id="pin-input" placeholder="····" maxlength="8"
+           onkeydown="if(event.key==='Enter')submitPin()"/>
+    <button class="auth-btn" onclick="submitPin()">Enter Dashboard →</button>
+    <div class="auth-err" id="auth-err"></div>
+    <div style="margin-top:1rem"><a href="index.html" style="font-size:.8rem;color:var(--text2);text-decoration:none">← Back to home</a></div>
+  </div>
+</div>
 
 <nav>
   <a href="index.html" class="nav-logo">🧠 Brainies</a>
@@ -120,7 +141,6 @@ tr:hover td{background:rgba(255,255,255,.015)}
   <div class="page-title">Class Dashboard</div>
   <p class="page-sub" id="page-sub">Student progress and accessibility overview &nbsp;·&nbsp; <span id="live-time"></span></p>
 
-  <!-- STAT CARDS -->
   <div class="stats">
     <div class="stat g"><div class="stat-n" id="s-total">—</div><div class="stat-l">Total students</div></div>
     <div class="stat b"><div class="stat-n" id="s-lessons">—</div><div class="stat-l">Lessons completed</div></div>
@@ -128,7 +148,6 @@ tr:hover td{background:rgba(255,255,255,.015)}
     <div class="stat r"><div class="stat-n" id="s-alerts">—</div><div class="stat-l">Need attention</div></div>
   </div>
 
-  <!-- CHARTS -->
   <div class="charts">
     <div class="chart-card"><div class="chart-title">Lessons completed per student</div><div class="chart-wrap"><canvas id="c-bar"></canvas></div></div>
     <div class="chart-card"><div class="chart-title">Accessibility profiles used</div><div class="chart-wrap"><canvas id="c-pie"></canvas></div></div>
@@ -136,7 +155,6 @@ tr:hover td{background:rgba(255,255,255,.015)}
     <div class="chart-card"><div class="chart-title">Feature usage</div><div class="chart-wrap"><canvas id="c-feat"></canvas></div></div>
   </div>
 
-  <!-- EXPORT -->
   <div class="export-row">
     <button onclick="exportCSV()">⬇ Export CSV</button>
     <button onclick="exportJSON()">⬇ Export JSON</button>
@@ -144,7 +162,6 @@ tr:hover td{background:rgba(255,255,255,.015)}
     <button onclick="sendAlerts()">📧 Send alerts to parents</button>
   </div>
 
-  <!-- TABLE -->
   <div class="table-wrap">
     <div class="table-toolbar">
       <input type="search" id="search-box" placeholder="🔍 Search student..." oninput="applyFilters()"/>
@@ -167,12 +184,8 @@ tr:hover td{background:rgba(255,255,255,.015)}
       <table>
         <thead>
           <tr>
-            <th>Student</th>
-            <th>Profile</th>
-            <th>Progress</th>
-            <th>Lessons</th>
-            <th>Last active</th>
-            <th>Status</th>
+            <th>Student</th><th>Profile</th><th>Progress</th>
+            <th>Lessons</th><th>Last active</th><th>Status</th>
           </tr>
         </thead>
         <tbody id="tbody"></tbody>
@@ -188,17 +201,46 @@ const API = '';
 function toast(msg,type){const w=document.getElementById('toast-wrap');const t=document.createElement('div');t.className='toast'+(type?' '+type:'');t.textContent=msg;w.appendChild(t);setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .3s';setTimeout(()=>t.remove(),300)},2500);}
 
 /* ── THEME ── */
-function toggleTheme(){const light=document.body.classList.toggle('light');const icon=light?'☀️':'🌙';document.getElementById('theme-btn').textContent=icon;localStorage.setItem('brainies_theme',light?'light':'dark');drawCharts();}
-
-/* ── AUTH ── */
-function auth(){
-  if(localStorage.getItem('brainies_auth')==='ok')return true;
-  const p=prompt('Enter teacher PIN (default: 1234)');
-  if(p==='1234'){localStorage.setItem('brainies_auth','ok');return true;}
-  document.body.innerHTML='<div style="display:flex;height:100vh;align-items:center;justify-content:center;flex-direction:column;gap:1rem;font-family:DM Sans,Arial;background:#0b0d0f;color:#eee"><h2>Access denied</h2><a href="index.html" style="color:#3ddc84">← Go back</a></div>';
-  return false;
+function toggleTheme(){
+  const light=document.body.classList.toggle('light');
+  const icon=light?'☀️':'🌙';
+  document.getElementById('theme-btn').textContent=icon;
+  localStorage.setItem('brainies_theme',light?'light':'dark');
+  /* FIX: redraw charts after theme toggle so colors update */
+  drawCharts();
 }
-function logoutTeacher(){if(!confirm('Log out of teacher view?'))return;localStorage.removeItem('brainies_auth');window.location.href='index.html';}
+
+/* ── AUTH — overlay PIN login instead of prompt() ── */
+function showAuthOverlay(){document.getElementById('auth-overlay').className='show';}
+function hideAuthOverlay(){document.getElementById('auth-overlay').className='';}
+
+function submitPin(){
+  const pin=document.getElementById('pin-input').value.trim();
+  /* FIX: also accept PIN via API call so teacher PIN env var works */
+  fetch(API+'/teacher-login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({pin})})
+    .then(r=>r.json())
+    .then(d=>{
+      if(d.success){grantAccess();}
+      else{document.getElementById('auth-err').textContent='Wrong PIN. Try again.';document.getElementById('pin-input').value='';}
+    })
+    .catch(()=>{
+      /* Offline fallback — accept default PIN client-side */
+      if(pin==='1234'){grantAccess();}
+      else{document.getElementById('auth-err').textContent='Wrong PIN. Default is 1234.';}
+    });
+}
+
+function grantAccess(){
+  localStorage.setItem('brainies_auth','ok');
+  hideAuthOverlay();
+  fetchData();
+}
+
+function logoutTeacher(){
+  if(!confirm('Log out of teacher view?'))return;
+  localStorage.removeItem('brainies_auth');
+  window.location.href='index.html';
+}
 
 /* ── DEMO DATA ── */
 let ALL_STUDENTS=[
@@ -225,7 +267,8 @@ async function fetchData(){
 function updateStats(){
   document.getElementById('s-total').textContent=ALL_STUDENTS.length;
   document.getElementById('s-lessons').textContent=ALL_STUDENTS.reduce((a,s)=>a+s.lessons,0);
-  document.getElementById('s-avg').textContent=Math.round(ALL_STUDENTS.reduce((a,s)=>a+s.progress,0)/ALL_STUDENTS.length)+'%';
+  const avg=ALL_STUDENTS.length?Math.round(ALL_STUDENTS.reduce((a,s)=>a+s.progress,0)/ALL_STUDENTS.length):0;
+  document.getElementById('s-avg').textContent=avg+'%';
   document.getElementById('s-alerts').textContent=ALL_STUDENTS.filter(s=>s.days>3).length;
 }
 
@@ -246,12 +289,13 @@ function applyFilters(){
 function resetFilters(){document.getElementById('search-box').value='';document.getElementById('filter-profile').value='';document.getElementById('sort-by').value='progress';applyFilters();}
 
 function renderTable(data){
-  // Determine color for progress bar fill
   function pfillColor(p){return p>=70?'var(--green)':p>=40?'var(--gold)':'var(--red)'}
+  /* FIX: use days_inactive if days is undefined (API returns days_inactive) */
   document.getElementById('tbody').innerHTML=data.map(s=>{
-    const risk=s.days>3;
-    const dot=s.days===0?'g':s.days<=2?'y':'r';
-    const status=s.days===0?'Active':s.days<=2?'Good':'Needs help';
+    const inactive = s.days !== undefined ? s.days : (s.days_inactive||0);
+    const risk=inactive>3;
+    const dot=inactive===0?'g':inactive<=2?'y':'r';
+    const status=inactive===0?'Active':inactive<=2?'Good':'Needs help';
     return`<tr class="${risk?'at-risk':''}">
       <td>${s.name}</td>
       <td><span class="tag ${s.profile}">${s.profile}</span></td>
@@ -262,7 +306,7 @@ function renderTable(data){
         </div>
       </td>
       <td>${s.lessons}</td>
-      <td>${s.days===0?'Today':s.days+'d ago'}</td>
+      <td>${inactive===0?'Today':inactive+'d ago'}</td>
       <td><span class="dot ${dot}"></span>${status}${risk?'<span class="alert-tag">⚠ Alert</span>':''}</td>
     </tr>`;
   }).join('');
@@ -276,10 +320,13 @@ function chartColors(){
   return{text:dark?'rgba(255,255,255,.6)':'rgba(0,0,0,.55)',grid:dark?'rgba(255,255,255,.06)':'rgba(0,0,0,.07)'}
 }
 function drawCharts(){
-  Object.values(charts).forEach(c=>{try{c.destroy();}catch{}});charts={};
+  /* FIX: safely destroy charts before redrawing */
+  Object.values(charts).forEach(c=>{try{c.destroy();}catch{}});
+  charts={};
   const tc=chartColors();
   const opts={responsive:true,maintainAspectRatio:false};
   const scaleOpt={ticks:{color:tc.text},grid:{color:tc.grid}};
+  const bgColor=document.body.classList.contains('light')?'#fff':'#141618';
 
   charts.bar=new Chart(document.getElementById('c-bar'),{type:'bar',data:{
     labels:ALL_STUDENTS.map(s=>s.name.split(' ')[0]),
@@ -289,7 +336,7 @@ function drawCharts(){
   const pc={};ALL_STUDENTS.forEach(s=>pc[s.profile]=(pc[s.profile]||0)+1);
   charts.pie=new Chart(document.getElementById('c-pie'),{type:'doughnut',data:{
     labels:Object.keys(pc),
-    datasets:[{data:Object.values(pc),backgroundColor:['#60a5fa','#fbbf24','#a78bfa','#f472b6','#3ddc84','#888'],borderWidth:2,borderColor:document.body.classList.contains('light')?'#fff':'#141618'}]
+    datasets:[{data:Object.values(pc),backgroundColor:['#60a5fa','#fbbf24','#a78bfa','#f472b6','#3ddc84','#888'],borderWidth:2,borderColor:bgColor}]
   },options:{...opts,plugins:{legend:{labels:{color:tc.text,font:{size:11}}}}}});
 
   charts.line=new Chart(document.getElementById('c-line'),{type:'line',data:{
@@ -305,31 +352,42 @@ function drawCharts(){
 
 /* ── EXPORT ── */
 function exportCSV(){
-  const rows=['Name,Profile,Progress,Lessons,Status',...ALL_STUDENTS.map(s=>`${s.name},${s.profile},${s.progress}%,${s.lessons},${s.days===0?'Active':s.days+'d inactive'}`)].join('\n');
+  const rows=['Name,Profile,Progress,Lessons,Status',...ALL_STUDENTS.map(s=>`${s.name},${s.profile},${s.progress}%,${s.lessons},${(s.days||s.days_inactive||0)===0?'Active':(s.days||s.days_inactive||0)+'d inactive'}`)].join('\n');
   dl('brainies_report.csv','text/csv',rows);toast('✅ CSV downloaded','ok');
 }
 function exportJSON(){dl('brainies_report.json','application/json',JSON.stringify({exported:new Date().toISOString(),students:ALL_STUDENTS},null,2));toast('✅ JSON downloaded','ok');}
 function exportPDF(){
-  const rows=ALL_STUDENTS.map(s=>`<tr><td>${s.name}</td><td>${s.profile}</td><td>${s.progress}%</td><td>${s.lessons}</td><td>${s.days===0?'Active':s.days+'d ago'}</td></tr>`).join('');
+  const rows=ALL_STUDENTS.map(s=>`<tr><td>${s.name}</td><td>${s.profile}</td><td>${s.progress}%</td><td>${s.lessons}</td><td>${(s.days||s.days_inactive||0)===0?'Active':(s.days||s.days_inactive||0)+'d ago'}</td></tr>`).join('');
   const w=window.open('','_blank');
+  if(!w){toast('Pop-up blocked — allow pop-ups and try again','ok');return;}
   w.document.write(`<html><head><title>Brainies Report</title><style>body{font-family:Arial;padding:2rem}h2{color:#166534}table{width:100%;border-collapse:collapse}th{background:#166534;color:#fff;padding:8px;text-align:left}td{padding:7px;border-bottom:1px solid #ddd}tr:nth-child(even){background:#f9f9f9}</style></head><body><h2>🧠 Brainies — Class Report</h2><p>Generated: ${new Date().toLocaleString()} · Total students: ${ALL_STUDENTS.length}</p><table><thead><tr><th>Name</th><th>Profile</th><th>Progress</th><th>Lessons</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
   w.document.close();setTimeout(()=>w.print(),400);toast('✅ PDF opened','ok');
 }
-function dl(name,type,content){const a=document.createElement('a');a.href='data:'+type+';charset=utf-8,'+encodeURIComponent(content);a.download=name;a.click();}
-function sendAlerts(){const at=ALL_STUDENTS.filter(s=>s.days>3);toast('📧 Alerts sent to '+at.length+' parents');}
+function dl(name,type,content){const a=document.createElement('a');a.href='data:'+type+';charset=utf-8,'+encodeURIComponent(content);a.download=name;document.body.appendChild(a);a.click();document.body.removeChild(a);}
+function sendAlerts(){const at=ALL_STUDENTS.filter(s=>(s.days||s.days_inactive||0)>3);toast('📧 Alerts sent to '+at.length+' parents');}
 
 /* ── LIVE TIME ── */
 function updateTime(){const el=document.getElementById('live-time');if(el)el.textContent=new Date().toLocaleString('en-IN',{weekday:'short',hour:'2-digit',minute:'2-digit'});}
 
 /* ── INIT ── */
-if(!auth()){}else{
+window.addEventListener('load',()=>{
   if(localStorage.getItem('brainies_theme')==='light'){document.body.classList.add('light');document.getElementById('theme-btn').textContent='☀️';}
   updateTime();setInterval(updateTime,60000);
-  fetchData();
-  window.exportCSV=exportCSV;
-  window.fetchData=fetchData;
-  window.sendAlerts=sendAlerts;
-}
+
+  if(localStorage.getItem('brainies_auth')==='ok'){
+    fetchData();
+  } else {
+    showAuthOverlay();
+    /* Show demo data behind the overlay so the page isn't blank */
+    updateStats();applyFilters();drawCharts();
+  }
+});
+
+/* FIX: allow Enter key on PIN input */
+document.addEventListener('DOMContentLoaded',()=>{
+  const input=document.getElementById('pin-input');
+  if(input)input.addEventListener('keydown',e=>{if(e.key==='Enter')submitPin();});
+});
 </script>
 </body>
 </html>
