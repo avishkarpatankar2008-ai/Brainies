@@ -106,7 +106,6 @@ body{
 .mic:hover{border-color:var(--green);background:var(--green-dim)}
 .mic.on{border-color:var(--green);background:var(--green-dim);animation:ring 1.5s ease infinite}
 @keyframes ring{0%,100%{box-shadow:0 0 0 0 rgba(61,220,132,.4)}60%{box-shadow:0 0 0 14px rgba(61,220,132,0)}}
-/* always-on badge */
 .mic-badge{
   position:absolute;bottom:-3px;right:-3px;
   background:var(--green);color:#000;border-radius:50%;
@@ -142,7 +141,6 @@ body{
 /* ── FORM ── */
 .field-label{display:block;font-size:.78rem;color:var(--text2);margin-bottom:.3rem;font-weight:600}
 .field-label span{color:#f87171}
-/* Name field with inline mic */
 .name-wrap{position:relative;margin-bottom:.25rem}
 .name-wrap input{
   width:100%;padding:.7rem 3rem .7rem .9rem;
@@ -191,7 +189,7 @@ body{
   transition:background .18s,transform .1s;
   display:flex;align-items:center;justify-content:center;gap:.5rem;
 }
-.go:hover{background:#2ec870;transform:translateY(-1px)}
+.go:hover:not(:disabled){background:#2ec870;transform:translateY(-1px)}
 .go:disabled{background:var(--bg3);color:var(--text2);cursor:not-allowed;transform:none}
 .spin{display:none;width:16px;height:16px;border:2px solid rgba(0,0,0,.2);border-top-color:#000;border-radius:50%;animation:sp .6s linear infinite}
 @keyframes sp{to{transform:rotate(360deg)}}
@@ -204,7 +202,7 @@ body{
   <div class="vbar-dot"></div>
   <span class="vbar-label">🎙️ Voice always on</span>
   <span class="vbar-heard" id="vbar-heard"></span>
-  <button class="vbar-off" onclick="toggleMic()">Pause voice</button>
+  <button class="vbar-off" id="vbar-off" onclick="toggleMic()">Pause voice</button>
 </div>
 
 <div class="card">
@@ -216,14 +214,12 @@ body{
   </div>
   <p class="tagline">Adaptive learning for every student &middot; Datathon 2026</p>
 
-  <!-- Blind mode notice -->
   <div class="blind-hero" id="blind-hero">
     <strong>👁️ Blind mode — voice navigation is always on</strong>
     Speak naturally at any time. I will guide you step by step.<br/>
     Say <em>"my name is [your name]"</em> → then say <em>"blind"</em> → then say <em>"enter"</em>.
   </div>
 
-  <!-- Voice commands reference -->
   <div class="vcmds">
     <strong>🎙️ Say these anytime — voice is always listening:</strong>
     <code>"my name is Priya"</code> → fills your name automatically<br/>
@@ -232,7 +228,6 @@ body{
     <code>"repeat"</code> → hear instructions again &nbsp;·&nbsp; <code>"stop"</code> → stops speaking
   </div>
 
-  <!-- Main mic (always on) -->
   <div class="mic-area">
     <button class="mic" id="mic" onclick="toggleMic()" aria-label="Voice navigation — always listening">
       🎙️
@@ -292,9 +287,7 @@ body{
 const API = '';
 let prof = 'standard', fs = 16;
 
-/* ══════════════════════════════════════════════════
-   TTS — Text to Speech (queued so nothing overlaps)
-══════════════════════════════════════════════════ */
+/* ── TTS — queued so nothing overlaps ── */
 let sq = [], spkBusy = false;
 function speak(t, cb) {
   if (!('speechSynthesis' in window)) { if (cb) cb(); return; }
@@ -313,25 +306,20 @@ function _drain() {
 }
 function stopSpeak() { sq = []; spkBusy = false; window.speechSynthesis.cancel(); }
 
-/* ══════════════════════════════════════════════════
-   ALWAYS-ON VOICE ENGINE
-   - Auto-restarts every time it ends (never stops)
-   - Handles name filling + profile + navigation
-══════════════════════════════════════════════════ */
+/* ── ALWAYS-ON VOICE ENGINE ── */
 let recog = null;
 let voiceActive = false;
-let voicePaused = false; // user manually paused
+let voicePaused = false;
 let restartTimer = null;
 
 function startVoice() {
   if (voicePaused || voiceActive) return;
-
   const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SR) { setMsg('Voice needs Chrome browser', 'err'); return; }
 
   recog = new SR();
   recog.lang = 'en-IN';
-  recog.continuous = false;   // false = cleaner on mobile
+  recog.continuous = false;
   recog.interimResults = true;
   recog.maxAlternatives = 3;
 
@@ -349,34 +337,29 @@ function startVoice() {
       else interim += e.results[i][0].transcript;
     }
     const heard = (final || interim).trim();
-    // Show what was heard
     if (heard) {
       document.getElementById('heard').className = 'heard show';
       document.getElementById('heard').textContent = '🎤 ' + heard;
       document.getElementById('vbar-heard').textContent = heard;
     }
-    // Only act on final results
     if (final) onCommand(final.toLowerCase().trim());
   };
 
   recog.onerror = (e) => {
     voiceActive = false;
     if (e.error === 'not-allowed') {
-      // Microphone blocked — stop trying
-      document.getElementById('mic').className = 'mic err';
+      document.getElementById('mic').className = 'mic';
       document.getElementById('mic-blocked').className = 'mic-blocked show';
       document.getElementById('voice-bar').className = 'voice-bar';
       setMsg('Microphone blocked — see instructions above', 'err');
       voicePaused = true;
       return;
     }
-    // no-speech, network errors etc — just restart
     scheduleRestart(800);
   };
 
   recog.onend = () => {
     voiceActive = false;
-    // KEY: auto-restart so voice is ALWAYS on
     scheduleRestart(200);
   };
 
@@ -388,16 +371,14 @@ function scheduleRestart(ms) {
   restartTimer = setTimeout(() => { if (!voicePaused) startVoice(); }, ms);
 }
 
-// Manual pause/resume toggle
+/* FIX: toggleMic used correct id "vbar-off" (was referencing non-existent child element) */
 function toggleMic() {
   if (voicePaused) {
-    // Resume
     voicePaused = false;
     document.getElementById('vbar-off').textContent = 'Pause voice';
     startVoice();
     speak('Voice navigation resumed. I am listening.');
   } else {
-    // Pause
     voicePaused = true;
     clearTimeout(restartTimer);
     if (recog) { try { recog.stop(); } catch (e) {} }
@@ -416,9 +397,7 @@ function setMsg(m, cls) {
   el.className = 'mic-msg' + (cls ? ' ' + cls : '');
 }
 
-/* ══════════════════════════════════════════════════
-   NAME FIELD INLINE MIC (separate recognizer)
-══════════════════════════════════════════════════ */
+/* ── NAME FIELD INLINE MIC ── */
 let nameRecog = null, nameRecogOn = false;
 function toggleNameMic() {
   if (nameRecogOn) {
@@ -440,7 +419,6 @@ function toggleNameMic() {
   nameRecog.onresult = (e) => {
     let t = '';
     for (let i = e.resultIndex; i < e.results.length; i++) t += e.results[i][0].transcript;
-    // Strip "my name is" prefix and capitalize
     const clean = t.replace(/^(my name is|i am|i'm|call me|name is|name)\s*/i, '').trim();
     const cap = clean.replace(/\b\w/g, c => c.toUpperCase());
     document.getElementById('uname').value = cap;
@@ -448,17 +426,20 @@ function toggleNameMic() {
     if (e.results[e.results.length - 1].isFinal) {
       nameRecogOn = false;
       document.getElementById('name-mic').className = 'name-mic';
-      if (prof && prof !== '') { speak('Name set to ' + cap + '. Entering Brainies now.', enter); } else { speak('Name set to ' + cap + '. Now say your condition — blind, dyslexic, ADHD, deaf, motor, or standard.'); }
+      if (prof && prof !== '') {
+        speak('Name set to ' + cap + '. Entering Brainies now.', enter);
+      } else {
+        speak('Name set to ' + cap + '. Now say your condition — blind, dyslexic, ADHD, deaf, motor, or standard.');
+      }
     }
   };
+  nameRecog.onerror = () => { nameRecogOn = false; document.getElementById('name-mic').className = 'name-mic'; };
   nameRecog.onend = () => { nameRecogOn = false; document.getElementById('name-mic').className = 'name-mic'; };
   nameRecog.start();
   speak('Say your name now.');
 }
 
-/* ══════════════════════════════════════════════════
-   VOICE COMMAND HANDLER
-══════════════════════════════════════════════════ */
+/* ── VOICE COMMAND HANDLER ── */
 const PMAP = {
   blind:    ['blind', 'visually impaired', 'cannot see', 'low vision', 'no vision'],
   dyslexic: ['dyslexic', 'dyslexia', 'reading difficulty', 'reading problem'],
@@ -469,13 +450,9 @@ const PMAP = {
 };
 
 function onCommand(txt) {
-  // STOP speaking
   if (/\b(stop|quiet|silence|cancel)\b/.test(txt)) { stopSpeak(); return; }
-
-  // REPEAT instructions
   if (/\b(repeat|help|instructions|what can i say)\b/.test(txt)) { speakInstructions(); return; }
 
-  // NAME — "my name is Priya" / "I am Priya" / "call me Priya"
   const nameReg = /(?:my name is|i am|i'm|call me|name is)\s+([a-zA-Z][a-zA-Z ]{1,28})/i;
   const nm = txt.match(nameReg);
   if (nm) {
@@ -485,7 +462,6 @@ function onCommand(txt) {
       const cap = raw.replace(/\b\w/g, c => c.toUpperCase());
       document.getElementById('uname').value = cap;
       onName();
-      // If profile already chosen → auto-enter immediately (no extra step needed)
       if (prof && prof !== '') {
         speak('Name set to ' + cap + '. ' + prof + ' profile already selected. Entering Brainies now.', enter);
       } else {
@@ -495,15 +471,12 @@ function onCommand(txt) {
     }
   }
 
-  // PROFILE SELECTION
   for (const [p, words] of Object.entries(PMAP)) {
     if (words.some(w => txt.includes(w))) {
       pick(document.querySelector(`.pb[data-p="${p}"]`));
-      // Show blind hero box
       document.getElementById('blind-hero').className = p === 'blind' ? 'blind-hero show' : 'blind-hero';
       const name = document.getElementById('uname').value.trim();
       if (name) {
-        // Name already filled → auto-enter immediately, no extra "say enter" step
         speak(p + ' profile selected. Welcome ' + name + '! Entering Brainies now.', enter);
       } else {
         speak(p + ' profile selected. Now say your name. For example: my name is Priya.');
@@ -512,17 +485,11 @@ function onCommand(txt) {
     }
   }
 
-  // ENTER APP
   if (/\b(enter|start|go|open app|open brainies|begin)\b/.test(txt)) { enter(); return; }
-
-  // FONT SIZE
   if (/bigger|increase text|larger font/.test(txt)) { changeFontSize(2); speak('Text bigger.'); return; }
   if (/smaller|decrease text|smaller font/.test(txt)) { changeFontSize(-2); speak('Text smaller.'); return; }
 }
 
-/* ══════════════════════════════════════════════════
-   INSTRUCTIONS (spoken welcome)
-══════════════════════════════════════════════════ */
 function speakInstructions() {
   speak(
     'Welcome to Brainies. Voice navigation is always on — just speak at any time. ' +
@@ -533,9 +500,7 @@ function speakInstructions() {
   );
 }
 
-/* ══════════════════════════════════════════════════
-   UI HELPERS
-══════════════════════════════════════════════════ */
+/* ── UI HELPERS ── */
 function pick(btn) {
   if (!btn) return;
   prof = btn.dataset.p;
@@ -561,9 +526,7 @@ function toggleTheme() {
   localStorage.setItem('brainies_theme', light ? 'light' : 'dark');
 }
 
-/* ══════════════════════════════════════════════════
-   ENTER APP
-══════════════════════════════════════════════════ */
+/* ── ENTER APP ── */
 async function enter() {
   const name = document.getElementById('uname').value.trim();
   if (!name) {
@@ -574,26 +537,35 @@ async function enter() {
   }
   speak('Welcome ' + name + '! Opening Brainies now.');
   document.getElementById('go-txt').textContent = 'Entering...';
-  document.getElementById('spin').style.display = 'block';
+  document.getElementById('spin').style.display = 'inline-block';
   document.getElementById('go-btn').disabled = true;
-  const sid = 'stu_' + Math.random().toString(36).substr(2, 6);
+
+  /* FIX: generate stable student ID, not random each visit */
+  let sid = localStorage.getItem('brainies_sid');
+  if (!sid) {
+    sid = 'stu_' + Math.random().toString(36).substr(2, 6);
+    localStorage.setItem('brainies_sid', sid);
+  }
   localStorage.setItem('brainies_profile', prof);
   localStorage.setItem('brainies_name', name);
-  localStorage.setItem('brainies_sid', sid);
+
   try {
     await fetch(API + '/save-profile', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ student_id: sid, profile: prof, name })
     });
   } catch (e) {}
-  setTimeout(() => { window.location.href = 'index.html'; }, 1600);
+
+  setTimeout(() => { window.location.href = 'index.html'; }, 1200);
 }
 
-/* ══════════════════════════════════════════════════
-   PAGE LOAD
-══════════════════════════════════════════════════ */
+/* ── PAGE LOAD ── */
 window.addEventListener('load', () => {
-  if (localStorage.getItem('brainies_profile')) { window.location.href = 'index.html'; return; }
+  /* FIX: only skip to index if BOTH profile AND name are set (prevents stale redirect) */
+  if (localStorage.getItem('brainies_profile') && localStorage.getItem('brainies_name')) {
+    window.location.href = 'index.html';
+    return;
+  }
   if (localStorage.getItem('brainies_theme') === 'light') {
     document.body.classList.add('light');
     document.getElementById('theme-btn').textContent = '☀️';
@@ -601,15 +573,12 @@ window.addEventListener('load', () => {
   pick(document.getElementById('std-btn'));
   document.getElementById('go-btn').disabled = true;
 
-  // Start voice after small delay (browser requires brief user interaction first on some devices)
-  // Speak welcome instructions then start always-on listening
   setTimeout(() => {
     speakInstructions();
     startVoice();
   }, 500);
 });
 
-// Keyboard shortcuts
 document.addEventListener('keydown', e => {
   if (e.key === 'Enter' && document.getElementById('uname').value.trim()) enter();
   if (e.altKey && e.key === '+') changeFontSize(2);
