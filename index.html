@@ -32,6 +32,8 @@ body.mode-adhd *{animation:none!important;transition:none!important}
 body.mode-blind{--bg:#000;--bg2:#111;--bg3:#1a1a1a;--border:#555;--border2:#777;--text:#fff;--text2:#ccc;font-size:20px!important}
 body.mode-blind button,body.mode-blind a,body.mode-blind .pcard{outline:3px solid #fff!important;outline-offset:3px}
 body.mode-deaf .caption-bar{display:flex!important}
+.caption-bar.deaf-on{display:flex!important}
+.caption-bar span{max-width:80vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 body.mode-motor button,body.mode-motor a{min-height:56px!important;font-size:18px!important;padding:.75rem 1.25rem!important}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;font-size:16px;transition:background .2s,color .2s}
 
@@ -315,9 +317,14 @@ function applyProfile(mode) {
   if (mode && mode !== 'standard') document.body.classList.add('mode-' + mode);
   document.querySelectorAll('.pcard').forEach(c => c.classList.toggle('active', c.dataset.mode === mode));
   const capBar = document.getElementById('caption-bar');
-  if (capBar) capBar.style.display = mode === 'deaf' ? 'flex' : '';
+  if (capBar) {
+    // BUG14 FIX: use class not inline style — inline style survives mode switches
+    if (mode === 'deaf') capBar.classList.add('deaf-on');
+    else capBar.classList.remove('deaf-on');
+  }
   // PERF: load OpenDyslexic lazily only when needed
-  if (mode === 'dyslexic' && !document.querySelector('[data-od]')) {
+  if (mode === 'dyslexic' && !window.__odLoaded && !document.querySelector('[data-od]')) {
+    window.__odLoaded = true;
     const lnk = document.createElement('link');
     lnk.rel = 'stylesheet'; lnk.dataset.od = '1';
     lnk.href = 'https://fonts.cdnfonts.com/css/opendyslexic';
@@ -333,7 +340,10 @@ window.setProfile = function(mode) {
 };
 
 function logout() {
-  ['brainies_profile','brainies_name','brainies_sid'].forEach(k => localStorage.removeItem(k));
+  // BUG22 FIX: clear every brainies_ key so re-registration starts fresh
+  Object.keys(localStorage)
+    .filter(k => k.startsWith('brainies_'))
+    .forEach(k => localStorage.removeItem(k));
   window.location.href = 'welcome.html';
 }
 
@@ -485,23 +495,30 @@ function startTimer(){
 function resetTimer(){clearInterval(timerInt);timerOn=false;isBreak=false;timerSec=25*60;document.getElementById('timer-btn').textContent='▶ Start';document.getElementById('timer-lbl').textContent='Focus session';document.getElementById('clock').style.color='var(--green)';updateClock();}
 
 function speakText(t){
-  // Stop demo mic while speaking — prevents mic hearing TTS output
   if(demoOn && demoRecog){ try{ demoRecog.stop(); }catch{} }
   if(window.speechSynthesis.speaking||window.speechSynthesis.pending)
     window.speechSynthesis.cancel();
   const u=new SpeechSynthesisUtterance(t);
   u.lang='en-IN'; u.rate=1.0;
   const cap=document.getElementById('caption-text');
-  if(cap) cap.textContent=t;
+  if(cap) cap.textContent=t.substring(0,80);
   window.speechSynthesis.speak(u);
-  // Note: demo mic does NOT auto-restart after speech —
-  // user must click the mic button manually (by design for demo tab)
 }
-function toggleTTS(){speakText(document.body.innerText.substring(0,600));}
+function toggleTTS(){
+  // Read only the main hero + section content, not nav and footer noise
+  const parts=[];
+  const hero=document.querySelector('.hero p');
+  if(hero)parts.push(hero.textContent);
+  document.querySelectorAll('.section-title,.pcard .pname,.pcard .pdesc').forEach(el=>parts.push(el.textContent));
+  speakText(parts.join('. ').substring(0,600));
+}
 
 let fs=16;
 function changeFontSize(d){fs=Math.max(12,Math.min(26,fs+d));document.documentElement.style.fontSize=fs+'px';}
 function checkOnline(){document.getElementById('offline-bar').className=navigator.onLine?'offline-bar':'offline-bar show';}
+
+// Fix timer memory leak: clear interval on page unload
+window.addEventListener('pagehide',()=>{if(timerInt)clearInterval(timerInt);});
 
 window.addEventListener('load',()=>{
   const saved=localStorage.getItem('brainies_profile');

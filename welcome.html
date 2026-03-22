@@ -206,11 +206,10 @@ body{
   </div>
 
   <div class="mic-area">
-    <button class="mic" id="mic" onclick="toggleMic()" aria-label="Voice navigation">
-      🎙️
-      <span class="mic-badge">∞</span>
+    <button class="mic" id="mic" onclick="toggleMic()" aria-label="Voice navigation — click to activate">
+      🎤
     </button>
-    <div class="mic-msg" id="msg">🎙️ Always listening — speak anytime</div>
+    <div class="mic-msg" id="msg">🎤 Preparing voice…</div>
   </div>
   <div class="heard" id="heard" aria-live="polite"></div>
   <div class="mic-blocked" id="mic-blocked">
@@ -327,7 +326,8 @@ function startVoice() {
 
   recog.onstart = () => {
     voiceActive = true;
-    document.getElementById('mic').className = 'mic on always-on';
+    document.getElementById('mic').className = 'mic on';
+    document.getElementById('mic').textContent = '🎙️';
     document.getElementById('voice-bar').className = 'voice-bar show';
     setMsg('🎙️ Listening — speak anytime', 'live');
   };
@@ -502,7 +502,9 @@ function toggleTheme() {
 }
 
 /* ── ENTER — fire-and-forget profile save, no await blocking navigation */
+let _entering = false;
 function enter() {
+  if (_entering) return; // prevent double-fire from simultaneous voice+click
   const name = document.getElementById('uname').value.trim();
   if (!name) {
     document.getElementById('uname').classList.add('err-field');
@@ -510,6 +512,7 @@ function enter() {
     speak('Please say your name first.');
     return;
   }
+  _entering = true;
   speak('Welcome ' + name + '! Opening Brainies.');
   document.getElementById('go-txt').textContent = 'Entering...';
   document.getElementById('spin').style.display = 'inline-block';
@@ -520,10 +523,8 @@ function enter() {
   localStorage.setItem('brainies_profile', prof);
   localStorage.setItem('brainies_name', name);
 
-  // PERF: fire-and-forget — don't await the save, navigate immediately after short delay
   fetch(API+'/save-profile',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({student_id:sid,profile:prof,name})}).catch(()=>{});
-
-  setTimeout(() => { window.location.href = 'index.html'; }, 800); // ← was 1200ms
+  setTimeout(() => { window.location.href = 'index.html'; }, 800);
 }
 
 /* ── INIT — voice starts at 300ms after load (was 500ms) */

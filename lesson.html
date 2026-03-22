@@ -34,16 +34,29 @@ body.light{
 /* ── ACCESSIBILITY MODES ── */
 body.mode-dyslexic{--bg:#fefce8;--bg2:#fef9c3;--bg3:#fef08a;--border:#c8b400;--border2:#b8a400;--text:#111;--text2:#444;font-size:19px;line-height:2}
 body.mode-dyslexic,body.mode-dyslexic *{font-family:'OpenDyslexic','Courier New',monospace!important;letter-spacing:.06em!important;word-spacing:.15em!important}
+/* BUG8 FIX: dyslexic quiz feedback uses icons+border not just color */
 body.mode-dyslexic .qopt.correct{background:#0a3d0a!important;border-color:#166534!important;color:#fff!important}
 body.mode-dyslexic .qopt.wrong{background:#3d0a0a!important;border-color:#991b1b!important;color:#fff!important}
+body.mode-dyslexic .quiz-fb.ok::before{content:'✅ ';}
+body.mode-dyslexic .quiz-fb.err::before{content:'❌ ';}
+
 body.mode-adhd{--bg:#f8f9fa;--bg2:#fff;--bg3:#f1f3f5;--border:#dee2e6;--border2:#ced4da;--text:#111;--text2:#555}
-/* PERF: ADHD mode kills ALL animations — no layout thrash, no GPU layers */
 body.mode-adhd *{animation:none!important;transition:none!important}
 body.mode-adhd .lesson-sidebar{display:none!important}
+/* BUG9 FIX: when sidebar hidden, main content takes full width */
+body.mode-adhd .layout{grid-template-columns:1fr!important}
+
 body.mode-blind{--bg:#000;--bg2:#111;--bg3:#1a1a1a;--border:#555;--border2:#777;--text:#fff;--text2:#ccc;font-size:20px}
 body.mode-blind button,body.mode-blind a{outline:3px solid #fff!important;outline-offset:3px}
+
+/* BUG13+15 FIX: caption truncates to one readable line, clears via JS onend */
 body.mode-deaf .caption-bar{display:flex!important}
-body.mode-motor button,body.mode-motor a{min-height:56px!important;font-size:18px!important;padding:.75rem 1.25rem!important}
+.caption-bar.deaf-on{display:flex!important}
+.caption-bar span{max-width:80vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* BUG16 FIX: motor mode targets sidebar items (divs with onclick) too */
+body.mode-motor button,body.mode-motor a,body.mode-motor .sb-item{min-height:56px!important;font-size:18px!important;padding:.75rem 1.25rem!important}
+body.mode-motor .sb-item{display:flex;align-items:center}
 
 /* PERF: will-change only on elements that actually animate */
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);
@@ -186,7 +199,7 @@ nav a:hover,nav button:hover{border-color:var(--green);color:var(--green)}
 
 <div class="caption-bar" id="caption-bar">
   <div class="cap-dot"></div>
-  <span id="cap-txt">Captions active</span>
+  <span id="cap-txt" aria-live="polite" aria-atomic="true"></span>
 </div>
 
 <div class="offline-bar" id="offline-bar">
@@ -235,7 +248,10 @@ nav a:hover,nav button:hover{border-color:var(--green);color:var(--green)}
     <button class="modal-close" onclick="closeOCR()">✕ Close</button>
     <h3>📷 Scan Textbook Page</h3>
     <p style="font-size:.8rem;color:var(--text2);margin-bottom:.7rem">Upload a photo of any textbook page to extract text.</p>
-    <div class="ocr-upload" onclick="document.getElementById('ocr-file').click()" role="button" tabindex="0">📷 Click to upload image</div>
+    <div class="ocr-upload" onclick="document.getElementById('ocr-file').click()"
+         role="button" tabindex="0"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('ocr-file').click()}"
+         aria-label="Upload image for text extraction">📷 Click or press Enter to upload image</div>
     <input type="file" id="ocr-file" accept="image/*" style="display:none" onchange="runOCR(this)"/>
     <div class="ocr-result" id="ocr-result"></div>
     <div class="ocr-actions" id="ocr-actions">
@@ -246,7 +262,7 @@ nav a:hover,nav button:hover{border-color:var(--green);color:var(--green)}
   </div>
 </div>
 
-<button id="vfab" onclick="toggleVoice()" title="Voice commands — click to toggle">🎙️</button>
+<button id="vfab" onclick="toggleVoice()" aria-label="Voice commands — click to toggle, or say help" title="Voice commands">🎙️</button>
 
 <!--
   PERF: Tesseract loaded on-demand only when OCR modal is opened,
@@ -410,21 +426,25 @@ function _ttsFlush(){
   u.onstart=()=>{
     if(vOn&&vRecog){try{vRecog.stop();}catch{}}
     clearTimeout(vRestartTimer);
+    // BUG13+15 FIX: show short caption (first 80 chars) for deaf users
+    const c=document.getElementById('cap-txt');
+    if(c)c.textContent=txt.substring(0,80)+(txt.length>80?'…':'');
   };
   // Resume mic only after speech fully ends
   u.onend=()=>{
     _ttsBusy=false;
     _ttsFlush();
     if(!vPaused&&!_ttsBusy) scheduleVRestart(150);
+    // BUG13 FIX: clear caption after speech ends so stale text doesn't linger
+    if(!_ttsBusy){const c=document.getElementById('cap-txt');if(c)c.textContent='';}
   };
   u.onerror=()=>{
     _ttsBusy=false;
     _ttsFlush();
     if(!vPaused&&!_ttsBusy) scheduleVRestart(150);
+    if(!_ttsBusy){const c=document.getElementById('cap-txt');if(c)c.textContent='';}
   };
   window.speechSynthesis.speak(u);
-  const c=document.getElementById('cap-txt');
-  if(c)c.textContent=txt;
 }
 function stopTTS(){
   _ttsQueue=[];_ttsBusy=false;
@@ -522,7 +542,7 @@ function loadLesson(i){
       </div>
       <div class="quiz-q" id="quiz-q">${L.q}</div>
       <div class="quiz-opts">
-        ${L.opts.map((o,j)=>`<button class="qopt" onclick="checkAns(this,${i},${j})">${o}</button>`).join('')}
+        ${L.opts.map((o,j)=>`<button class="qopt" onclick="checkAns(this,${i},${j})" aria-label="Option ${j+1} of ${L.opts.length}: ${o}">${o}</button>`).join('')}
       </div>
       <div class="quiz-fb" id="qfb"></div>
       <div class="quiz-next" id="qnext">
@@ -573,6 +593,7 @@ function checkAns(btn,li,j){
   const ans=QA[li];
   document.querySelectorAll('.qopt').forEach(b=>b.disabled=true);
   const correct=j===ans.c;
+  const alreadyAnswered=getQuizScores().hasOwnProperty(li);
   saveQuizScore(li,correct);
   const fb=document.getElementById('qfb');
   if(correct){
@@ -581,8 +602,11 @@ function checkAns(btn,li,j){
     fb.textContent='✅ Correct! '+ans.e;
     speak('Correct! '+ans.e);
     toast('✅ Correct! +50 points','ok');
-    localStorage.setItem('brainies_points',
-      (parseInt(localStorage.getItem('brainies_points')||'0')+50).toString());
+    // Only award points the first time this quiz is answered
+    if(!alreadyAnswered){
+      localStorage.setItem('brainies_points',
+        (parseInt(localStorage.getItem('brainies_points')||'0')+50).toString());
+    }
   }else{
     btn.classList.add('wrong');
     const opts=document.querySelectorAll('.qopt');
@@ -601,20 +625,22 @@ function checkAns(btn,li,j){
 /* ─────────────────────────────────────────────────────────
    COMPLETE LESSON — fire-and-forget save, no await blocking UI
 ───────────────────────────────────────────────────────── */
+let _completing=false;
 function completeLess(i){
+  if(_completing)return; // BUG20 FIX: prevent double-fire from rapid clicks/voice
+  _completing=true;
   const done=JSON.parse(localStorage.getItem('brainies_done')||'[]');
   if(!done.includes(i)){done.push(i);localStorage.setItem('brainies_done',JSON.stringify(done));}
-  // PERF: fire-and-forget — don't await the network, update UI immediately
   fetch(API+'/save-progress',{method:'POST',headers:{'Content-Type':'application/json'},
     body:JSON.stringify({student_id:localStorage.getItem('brainies_sid')||'guest',
       lesson_id:'lesson_'+i,score:100,completed:true,
       points_earned:50,timestamp:new Date().toISOString()})
-  }).catch(()=>{});  // silent fail — progress is in localStorage anyway
+  }).catch(()=>{});
   toast('🎉 Lesson complete!','ok');
   speak('Lesson complete! Well done!');
   if(_sbBuilt)updateSidebar();
-  // Navigate after brief delay so toast is visible
   setTimeout(()=>{
+    _completing=false;
     if(i<LESSONS.length-1)loadLesson(i+1);
     else window.location.href='index.html';
   },900);
@@ -625,7 +651,12 @@ function completeLess(i){
 ───────────────────────────────────────────────────────── */
 function readLesson(){
   const c=document.getElementById('lesson-content');
-  if(c)speak(c.innerText.substring(0,1400));
+  if(!c)return;
+  // BUG-I FIX: extract only paragraph text — skip h3 headers and callout labels
+  // that get jumbled when read as raw innerText
+  const paras=[...c.querySelectorAll('p')].map(p=>p.textContent.trim()).filter(Boolean);
+  const text=paras.join('. ').substring(0,1400);
+  speak(text||c.innerText.substring(0,1400));
 }
 
 /* ─────────────────────────────────────────────────────────
@@ -640,26 +671,32 @@ const _simplifyFallback=text=>{
 };
 
 async function simplifyLesson(){
+  const btn=document.getElementById('simp-btn');
+  if(btn.disabled)return; // prevent double-call
+  btn.disabled=true;
+  btn.textContent='✨ Simplifying…';
   const paras=[...document.querySelectorAll('#lesson-content p')];
   paras.forEach((p,i)=>{if(!originalContent[i])originalContent[i]=p.textContent;});
   paras.forEach(p=>p.textContent='Simplifying…');
 
-  // PERF: all paragraphs simplified in parallel, not one-by-one
   const results=await Promise.all(paras.map(async(p,i)=>{
     try{
       const r=await fetch(API+'/simplify',{method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({text:originalContent[i]}),
-        signal:AbortSignal.timeout(8000)});  // 8 s hard timeout
+        signal:AbortSignal.timeout(8000)});
       const d=await r.json();
       return d.result||originalContent[i];
     }catch{return _simplifyFallback(originalContent[i]);}
   }));
 
   paras.forEach((p,i)=>p.textContent=results[i]);
+  btn.disabled=false;
+  btn.textContent='✨ Simplify';
   document.getElementById('simp-btn').style.display='none';
   document.getElementById('restore-btn').style.display='';
   toast('✅ Text simplified!','ok');
+  speak('Text simplified.');
 }
 
 /* ─────────────────────────────────────────────────────────
@@ -753,10 +790,13 @@ function speakQuiz(){
   const q=document.getElementById('quiz-q');
   if(!q)return;
   const opts=document.querySelectorAll('.qopt');
-  let msg='Quiz. '+q.textContent+' Options: ';
-  opts.forEach((o,i)=>{msg+=(i+1)+': '+o.textContent.trim()+'. ';});
-  msg+='Say option 1 through 4 to answer.';
+  let msg='Quiz question: '+q.textContent+' ';
+  opts.forEach((o,i)=>{msg+='Option '+(i+1)+': '+o.textContent.trim()+'. ';});
+  msg+='Say option 1, 2, 3, or 4 to answer.';
   speak(msg);
+  // BUG-E FIX: update caption bar so deaf users can read the question too
+  const cap=document.getElementById('cap-txt');
+  if(cap)cap.textContent=('Q: '+q.textContent).substring(0,80);
 }
 
 /* ═══════════════════════════════════════════════════════════
@@ -850,9 +890,13 @@ function toggleVoice(){
    LESSON VOICE COMMANDS
 ───────────────────────────────────────────────────────── */
 function handleLessonVoice(t){
+  // Check longer stop phrases BEFORE bare "stop" to avoid collision
+  if(/\b(stop reading|stop speaking)\b/.test(t)){stopTTS();return;}
   if(/\b(stop|quiet|silence)\b/.test(t)){stopTTS();return;}
-  if(/\b(read|read lesson|repeat lesson)\b/.test(t)){readLesson();return;}
-  if(/\b(quiz|read quiz|options|repeat quiz)\b/.test(t)){speakQuiz();return;}
+  if(/\b(read lesson|read aloud|read content|repeat lesson)\b/.test(t)){readLesson();return;}
+  if(/\b(read quiz|read options|read answers|what are the options|repeat quiz)\b/.test(t)){speakQuiz();return;}
+  if(/\b(read)\b/.test(t)&&!t.includes('option')&&!t.includes('answer')){readLesson();return;}
+  if(/\b(quiz|question)\b/.test(t)){speakQuiz();return;}
 
   // Option selection
   const optMap={'1':0,'one':0,'first':0,'a':0,'option one':0,'answer one':0,
@@ -902,10 +946,12 @@ window.addEventListener('load',()=>{
 
   ['blind','dyslexic','adhd','deaf','motor'].forEach(m=>document.body.classList.remove('mode-'+m));
   if(p!=='standard')document.body.classList.add('mode-'+p);
-  if(p==='deaf')document.getElementById('caption-bar').style.display='flex';
+  if(p==='deaf')document.getElementById('caption-bar').classList.add('deaf-on');
 
-  // PERF: load OpenDyslexic font only for dyslexic profile
-  if(p==='dyslexic'&&!document.querySelector('[data-od]')){
+  // PERF: load OpenDyslexic only once per session using a global flag
+  // BUG-H FIX: index.html may have already loaded it — check before injecting again
+  if(p==='dyslexic'&&!window.__odLoaded&&!document.querySelector('[data-od]')){
+    window.__odLoaded=true;
     const lnk=document.createElement('link');
     lnk.rel='stylesheet';lnk.dataset.od='1';
     lnk.href='https://fonts.cdnfonts.com/css/opendyslexic';
@@ -926,14 +972,12 @@ window.addEventListener('load',()=>{
   window.addEventListener('online',checkOnline);
   window.addEventListener('offline',checkOnline);
 
-  // PERF: voice starts after a 200ms idle — lets the page paint first
+  // BUG1 FIX: speak instructions first, THEN start voice (mic never open during TTS)
   setTimeout(()=>{
-    startVoice();
     if(p==='blind'){
-      setTimeout(()=>{
-        speak('Lesson loaded. '+LESSONS[cur].title+
-          '. Say read lesson for content. Say read quiz for the question. Say help for commands.');
-      },600);
+      speak('Lesson loaded. '+LESSONS[cur].title+'. Say read lesson for content. Say read quiz for the question. Say help for commands.', startVoice);
+    } else {
+      startVoice();
     }
   },200);
 

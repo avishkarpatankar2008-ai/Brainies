@@ -442,7 +442,10 @@
     }
     if (_match(text, ['logout','log out','sign out','exit'])) {
       speak('Logging out.');
-      setTimeout(() => { localStorage.clear(); window.location.href = 'welcome.html'; }, 600);
+      setTimeout(() => {
+        Object.keys(localStorage).filter(k=>k.startsWith('brainies_')).forEach(k=>localStorage.removeItem(k));
+        window.location.href = 'welcome.html';
+      }, 600);
       return;
     }
 

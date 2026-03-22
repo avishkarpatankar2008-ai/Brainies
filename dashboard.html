@@ -175,9 +175,14 @@ tr.at-risk td{background:rgba(248,113,113,.03)}
       <span class="table-count" id="table-count"></span>
     </div>
     <div class="tscroll">
-      <table>
-        <thead><tr><th>Student</th><th>Profile</th><th>Progress</th><th>Lessons</th><th>Last active</th><th>Status</th></tr></thead>
-        <tbody id="tbody"></tbody>
+      <table aria-label="Student progress table" role="table">
+        <thead>
+          <tr>
+            <th scope="col">Student</th><th scope="col">Profile</th><th scope="col">Progress</th>
+            <th scope="col">Lessons</th><th scope="col">Last active</th><th scope="col">Status</th>
+          </tr>
+        </thead>
+        <tbody id="tbody" aria-live="polite"></tbody>
       </table>
     </div>
   </div>
@@ -244,9 +249,11 @@ async function fetchData(){
   waitForChartJS(drawCharts);
 }
 
-function waitForChartJS(cb){
-  if(window.Chart)cb();
-  else setTimeout(()=>waitForChartJS(cb),50);
+function waitForChartJS(cb,attempts){
+  attempts=attempts||0;
+  if(window.Chart){cb();return;}
+  if(attempts>100){console.warn('Chart.js failed to load — offline?');return;} // BUG23 FIX: max 5s, then give up
+  setTimeout(()=>waitForChartJS(cb,attempts+1),50);
 }
 
 function updateStats(){
@@ -275,10 +282,19 @@ function resetFilters(){document.getElementById('search-box').value='';document.
 
 function renderTable(data){
   function fc(p){return p>=70?'var(--green)':p>=40?'var(--gold)':'var(--red)'}
+  // XSS FIX: escape all user-supplied strings before inserting into HTML
+  function esc(s){const d=document.createElement('div');d.textContent=String(s||'');return d.innerHTML;}
   const html=data.map(s=>{
     const d=s.days_inactive!==undefined?s.days_inactive:(s.days||0);
     const risk=d>3,dot=d===0?'g':d<=2?'y':'r',status=d===0?'Active':d<=2?'Good':'Needs help';
-    return`<tr class="${risk?'at-risk':''}"><td>${s.name}</td><td><span class="tag ${s.profile}">${s.profile}</span></td><td><div class="pbar-wrap"><div class="pbar"><div class="pfill" style="width:${s.progress}%;background:${fc(s.progress)}"></div></div><span class="pbar-num">${s.progress}%</span></div></td><td>${s.lessons}</td><td>${d===0?'Today':d+'d ago'}</td><td><span class="dot ${dot}"></span>${status}${risk?'<span class="alert-tag">⚠ Alert</span>':''}</td></tr>`;
+    return`<tr class="${risk?'at-risk':''}">
+      <td>${esc(s.name)}</td>
+      <td><span class="tag ${esc(s.profile)}">${esc(s.profile)}</span></td>
+      <td><div class="pbar-wrap"><div class="pbar"><div class="pfill" style="width:${esc(s.progress)}%;background:${fc(s.progress)}"></div></div><span class="pbar-num">${esc(s.progress)}%</span></div></td>
+      <td>${esc(s.lessons)}</td>
+      <td>${d===0?'Today':esc(d)+'d ago'}</td>
+      <td><span class="dot ${dot}"></span>${status}${risk?'<span class="alert-tag">⚠ Alert</span>':''}</td>
+    </tr>`;
   }).join('');
   document.getElementById('tbody').innerHTML=html;
   document.getElementById('table-count').textContent='Showing '+data.length+' of '+ALL_STUDENTS.length;
