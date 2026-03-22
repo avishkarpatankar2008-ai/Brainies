@@ -1,42 +1,25 @@
 /**
- * BRAINIES VOICE ENGINE v3
+ * BRAINIES VOICE ENGINE v4 — Wake-Word Mode
  *
- * WHAT WAS BREAKING THE VOICE:
+ * HOW IT WORKS:
+ * ─────────────────────────────────────────────────
+ * Voice is OFF by default on all pages.
  *
- * 1. continuous=true
- *    The browser kept an open audio stream running forever, constantly
- *    processing audio even in silence. This causes crackling, dropouts
- *    and broken recognition because the stream competes with TTS output.
- *    FIX: continuous=false + instant auto-restart (80ms gap).
+ * A lightweight "wake listener" runs silently in the
+ * background listening ONLY for the wake phrase.
+ * Wake phrases: "hey brainies", "help", "voice on",
+ *               "start voice", "listen"
  *
- * 2. maxAlternatives=3
- *    Speech engine ran 3 full transcriptions per utterance = 3x CPU.
- *    On low-end devices this caused the audio pipeline to stall mid-word,
- *    making voice sound cut off and commands missed.
- *    FIX: maxAlternatives=1
+ * When wake word is detected:
+ *   1. Wake listener stops
+ *   2. A 5-second command session opens (mic turns green)
+ *   3. Any command is processed
+ *   4. After command (or 5s silence), session closes
+ *   5. Wake listener restarts silently
  *
- * 3. speechSynthesis.cancel() called inside EVERY _drain() call
- *    Even when nothing was playing, cancel() was fired before every
- *    single utterance. This reset the TTS engine each time = 200-300ms
- *    silence gap + first word of every sentence getting clipped/cut off.
- *    FIX: only cancel() when queue replaces an active utterance.
- *
- * 4. startListening passed as a callback to speak()
- *    Mic only started AFTER the full intro speech ended (5-10 seconds).
- *    During that whole time, nothing was being listened to.
- *    FIX: startListening runs immediately alongside speech, not after it.
- *
- * 5. Restart delays: 600ms normal, 1000-2000ms on errors
- *    Gap between recognition sessions = dead time where voice was deaf.
- *    FIX: 80ms normal gap, 300ms on real errors.
- *
- * 6. _micUI() wrote 5 inline style properties on every onstart/onend
- *    This forced style recalculation + layout on every cycle = jank.
- *    FIX: single className update, button ref cached.
- *
- * 7. TTS rate=0.88 caused Chrome to sometimes drop the first syllable
- *    because the engine starts slightly slow at sub-1.0 rates.
- *    FIX: rate=1.0 (natural speed, clearest output).
+ * Blind mode: always-on as before (no wake word needed).
+ * Alt+V: toggle full session manually.
+ * Mic button: tap to open/close a session manually.
  */
 (function () {
   'use strict';
@@ -44,21 +27,14 @@
   const LANG = 'en-IN';
 
   /* ═══════════════════════════════════════════════════
-     SPEECH SYNTHESIS
-     FIX: never cancel() blindly — only when replacing
-     an active utterance. This eliminates the clipped
-     first-word and 200-300ms silence gap.
+     TTS — queue-based, stutter-free
   ═══════════════════════════════════════════════════ */
   let _q = [], _busy = false;
 
   function speak(text, cb) {
     if (!('speechSynthesis' in window)) { if (cb) cb(); return; }
-    // If cb given, it's a "then do X" call — replace queue so it runs next
-    if (cb) {
-      _q = [{ text, cb }];
-    } else {
-      _q.push({ text, cb: null });
-    }
+    if (cb) _q = [{ text, cb }];
+    else    _q.push({ text, cb: null });
     if (!_busy) _drain();
   }
 
@@ -66,26 +42,14 @@
     if (!_q.length) { _busy = false; return; }
     _busy = true;
     const { text, cb } = _q.shift();
-
-    // Only cancel if TTS is actively mid-speech — not on fresh calls
-    if (window.speechSynthesis.speaking || window.speechSynthesis.pending) {
+    if (window.speechSynthesis.speaking || window.speechSynthesis.pending)
       window.speechSynthesis.cancel();
-    }
-
     const u = new SpeechSynthesisUtterance(text);
-    u.lang   = LANG;
-    u.rate   = 1.0;   // FIX: was 0.88 — caused first syllable clipping in Chrome
-    u.volume = 1;
-    u.pitch  = 1;
-
-    u.onend   = () => { _busy = false; if (cb) cb(); _drain(); };
-    u.onerror = () => { _busy = false; if (cb) cb(); _drain(); };
-
+    u.lang = LANG; u.rate = 1.0; u.volume = 1; u.pitch = 1;
+    u.onend = u.onerror = () => { _busy = false; if (cb) cb(); _drain(); };
     window.speechSynthesis.speak(u);
-
-    // Update captions for deaf mode
-    const el = document.getElementById('caption-text') || document.getElementById('cap-txt');
-    if (el) el.textContent = text;
+    const cap = document.getElementById('caption-text') || document.getElementById('cap-txt');
+    if (cap) cap.textContent = text;
   }
 
   function stopSpeaking() {
@@ -94,138 +58,278 @@
   }
 
   /* ═══════════════════════════════════════════════════
-     MICROPHONE ENGINE
-     FIX: continuous=false (no open stream), 
-          maxAlternatives=1 (3x less CPU),
-          80ms restart gap (was 600-2000ms)
+     BLIND MODE CHECK
   ═══════════════════════════════════════════════════ */
-  let _recog = null, _active = false, _rTimer = null, _micBtn = null;
-
-  const alwaysOn = () =>
+  const isBlind = () =>
     localStorage.getItem('brainies_always_voice') === '1' ||
     localStorage.getItem('brainies_profile') === 'blind';
 
-  function startListening() {
-    if (_active) return;
+  /* ═══════════════════════════════════════════════════
+     WAKE WORD LISTENER
+     Runs silently in background.
+     Only listens for wake phrases — ignores everything else.
+     Uses minimal resources: single utterance, no continuous stream.
+  ═══════════════════════════════════════════════════ */
+  const WAKE_PHRASES = ['hey brainies','help','voice on','start voice','listen','okay brainies'];
+
+  let _wake = null, _wakeActive = false, _wakeTimer = null, _wakePaused = false;
+
+  function _startWake() {
+    if (_wakeActive || _wakePaused || isBlind()) return;
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     if (!SR) return;
 
-    _recog = new SR();
-    _recog.lang            = LANG;
-    _recog.continuous      = false; // FIX: was true — open stream caused audio breakup
-    _recog.interimResults  = false; // FIX: no per-syllable firing
-    _recog.maxAlternatives = 1;     // FIX: was 3 — 3x CPU per utterance
+    _wake = new SR();
+    _wake.lang            = LANG;
+    _wake.continuous      = false;
+    _wake.interimResults  = false;
+    _wake.maxAlternatives = 1;
 
-    _recog.onstart = () => {
-      _active = true;
-      _micUI(true);
-      const bar = document.getElementById('voice-bar');
-      if (bar && alwaysOn()) bar.className = 'voice-bar show';
-    };
-
-    _recog.onend = () => {
-      _active = false;
-      _micUI(false);
-      // FIX: 80ms gap (was 600ms) — barely perceptible, much faster pickup
-      if (alwaysOn()) _restart(80);
-    };
-
-    _recog.onerror = (e) => {
-      _active = false;
-      _micUI(false);
-      if (e.error === 'not-allowed') {
-        speak('Microphone blocked. Please allow microphone in browser settings.');
-        return;
+    _wake.onstart  = () => { _wakeActive = true; };
+    _wake.onresult = (e) => {
+      const txt = e.results[0][0].transcript.toLowerCase().trim();
+      if (WAKE_PHRASES.some(w => txt.includes(w))) {
+        _wakeActive = false;
+        _openSession(); // wake word heard — open command session
       }
-      if (alwaysOn()) {
-        // FIX: no-speech is normal — restart quickly. Other errors need small delay.
-        _restart(e.error === 'no-speech' ? 80 : 300); // was 1000-2000ms
-      }
+      // Non-wake speech: ignore silently
+    };
+    _wake.onerror = () => {
+      _wakeActive = false;
+      if (!_wakePaused) _scheduleWake(500);
+    };
+    _wake.onend = () => {
+      _wakeActive = false;
+      // Keep wake listener cycling unless a session is open or paused
+      if (!_sessionOpen && !_wakePaused) _scheduleWake(200);
     };
 
-    _recog.onresult = (e) => {
-      // Only act on final results — no interim noise
-      let txt = '';
-      for (let i = e.resultIndex; i < e.results.length; i++) {
-        if (e.results[i].isFinal) txt += e.results[i][0].transcript;
-      }
-      txt = txt.toLowerCase().trim();
-      if (!txt) return;
-
-      // Show heard text in UI if element exists
-      const heard = document.getElementById('vb-heard');
-      if (heard) heard.textContent = txt;
-
-      _handleCmd(txt);
-    };
-
-    try {
-      _recog.start();
-    } catch {
-      if (alwaysOn()) _restart(300);
-    }
+    try { _wake.start(); }
+    catch { _scheduleWake(800); }
   }
 
-  function stopListening() {
-    if (alwaysOn()) {
-      speak('Voice is always on in blind mode. Say help for commands.');
-      return;
-    }
-    _active = false;
-    clearTimeout(_rTimer);
-    if (_recog) { try { _recog.stop(); } catch {} }
-    _micUI(false);
+  function _scheduleWake(ms) {
+    clearTimeout(_wakeTimer);
+    _wakeTimer = setTimeout(_startWake, ms);
   }
 
-  function _restart(ms) {
-    clearTimeout(_rTimer);
-    _rTimer = setTimeout(() => {
-      if (alwaysOn() && !_active) startListening();
-    }, ms);
+  function _stopWake() {
+    _wakePaused = true;
+    clearTimeout(_wakeTimer);
+    _wakeActive = false;
+    if (_wake) { try { _wake.stop(); } catch {} }
+  }
+
+  function _resumeWake() {
+    _wakePaused = false;
+    if (!_sessionOpen && !isBlind()) _scheduleWake(300);
   }
 
   /* ═══════════════════════════════════════════════════
-     MIC UI
-     FIX: cache button ref, single className update
-     instead of 5 style property writes per cycle
+     COMMAND SESSION
+     Opens for 5 seconds, processes one command,
+     then closes and hands back to wake listener.
   ═══════════════════════════════════════════════════ */
-  function _micUI(on) {
-    // Cache the button reference — don't query DOM every cycle
+  let _cmd = null, _cmdActive = false, _sessionOpen = false, _sessionTimer = null;
+
+  const SESSION_MS = 5000; // 5 seconds to speak a command
+
+  function _openSession() {
+    if (_sessionOpen) { _extendSession(); return; }
+    _sessionOpen = true;
+    _stopWake(); // pause wake listener during session
+
+    speak('Listening.', () => {
+      _startCmd(); // start mic AFTER "Listening." finishes
+    });
+
+    _micUI('session');
+    _updateStatus('🎙️ Speak your command…');
+
+    // Auto-close after SESSION_MS of silence
+    _sessionTimer = setTimeout(_closeSession, SESSION_MS);
+  }
+
+  function _extendSession() {
+    clearTimeout(_sessionTimer);
+    _sessionTimer = setTimeout(_closeSession, SESSION_MS);
+  }
+
+  function _closeSession(silent) {
+    clearTimeout(_sessionTimer);
+    _sessionOpen = false;
+    _cmdActive   = false;
+    if (_cmd) { try { _cmd.stop(); } catch {} _cmd = null; }
+    _micUI('off');
+    _updateStatus('');
+    if (!silent) _resumeWake(); // restart background wake listener
+  }
+
+  function _startCmd() {
+    if (_cmdActive) return;
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return;
+
+    _cmd = new SR();
+    _cmd.lang            = LANG;
+    _cmd.continuous      = false;
+    _cmd.interimResults  = false;
+    _cmd.maxAlternatives = 1;
+
+    _cmd.onstart  = () => { _cmdActive = true; _micUI('on'); };
+    _cmd.onresult = (e) => {
+      const txt = e.results[0][0].transcript.toLowerCase().trim();
+      if (!txt) return;
+      const heard = document.getElementById('vb-heard');
+      if (heard) heard.textContent = txt;
+      _extendSession(); // reset timer on each result
+      _handleCmd(txt);
+    };
+    _cmd.onerror = () => {
+      _cmdActive = false;
+      _micUI('session');
+      // Re-open mic within session window
+      if (_sessionOpen) setTimeout(_startCmd, 200);
+    };
+    _cmd.onend = () => {
+      _cmdActive = false;
+      _micUI('session');
+      // Re-open mic within session window to allow multi-command
+      if (_sessionOpen) setTimeout(_startCmd, 150);
+    };
+
+    try { _cmd.start(); }
+    catch { if (_sessionOpen) setTimeout(_startCmd, 500); }
+  }
+
+  /* ═══════════════════════════════════════════════════
+     ALWAYS-ON ENGINE (blind mode only)
+     Unchanged from v3 — blind users need no wake word.
+  ═══════════════════════════════════════════════════ */
+  let _ao = null, _aoActive = false, _aoTimer = null;
+
+  function _startAlwaysOn() {
+    if (_aoActive) return;
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SR) return;
+
+    _ao = new SR();
+    _ao.lang            = LANG;
+    _ao.continuous      = false;
+    _ao.interimResults  = false;
+    _ao.maxAlternatives = 1;
+
+    _ao.onstart  = () => { _aoActive = true; _micUI('on'); };
+    _ao.onend    = () => { _aoActive = false; _micUI('off'); _scheduleAO(80); };
+    _ao.onerror  = (e) => {
+      _aoActive = false; _micUI('off');
+      _scheduleAO(e.error === 'no-speech' ? 80 : 300);
+    };
+    _ao.onresult = (e) => {
+      const txt = e.results[0][0].transcript.toLowerCase().trim();
+      if (!txt) return;
+      const heard = document.getElementById('vb-heard');
+      if (heard) heard.textContent = txt;
+      _handleCmd(txt);
+    };
+
+    try { _ao.start(); } catch { _scheduleAO(300); }
+  }
+
+  function _scheduleAO(ms) {
+    clearTimeout(_aoTimer);
+    _aoTimer = setTimeout(() => { if (isBlind() && !_aoActive) _startAlwaysOn(); }, ms);
+  }
+
+  /* ═══════════════════════════════════════════════════
+     PUBLIC startListening / stopListening
+     Used by _intro() and public API
+  ═══════════════════════════════════════════════════ */
+  function startListening() {
+    if (isBlind()) { _startAlwaysOn(); return; }
+    _openSession();
+  }
+
+  function stopListening() {
+    if (isBlind()) { speak('Voice is always on in blind mode. Say help for commands.'); return; }
+    _closeSession(true);
+    _resumeWake();
+  }
+
+  /* ═══════════════════════════════════════════════════
+     MIC BUTTON UI
+  ═══════════════════════════════════════════════════ */
+  let _micBtn = null;
+
+  function _micUI(state) {
+    // state: 'on' | 'off' | 'session' | 'wake'
     if (!_micBtn) {
-      _micBtn = document.getElementById('bv-mic');
-      if (!_micBtn && alwaysOn()) {
-        // Inject style once via <style> tag
-        if (!document.getElementById('_bv_style')) {
-          const s = document.createElement('style');
-          s.id = '_bv_style';
-          s.textContent =
-            '#bv-mic{position:fixed;bottom:1.2rem;right:1.2rem;width:50px;height:50px;' +
-            'border-radius:50%;font-size:1.2rem;cursor:pointer;z-index:9999;' +
-            'display:flex;align-items:center;justify-content:center;' +
-            'border:2px solid #333;background:#252525;color:#888;' +
-            'transition:background .15s,border-color .15s}' +
-            '#bv-mic.on{background:#3ddc84;color:#000;border-color:#3ddc84}' +
-            '#bv-mic.ao{background:#1a3a1a;color:#3ddc84;border-color:#3ddc84}';
-          document.head.appendChild(s);
-        }
-        _micBtn = document.createElement('button');
-        _micBtn.id = 'bv-mic';
-        _micBtn.setAttribute('aria-label', 'Voice navigation');
-        _micBtn.textContent = '🎙️';
-        _micBtn.onclick = () => {
-          if (alwaysOn()) {
-            speak('Voice is always on. Say help for commands.');
-          } else {
-            if (_active) { stopListening(); speak('Voice off.'); }
-            else { speak('Voice on.'); startListening(); }
-          }
-        };
-        document.body.appendChild(_micBtn);
+      if (!document.getElementById('_bv_style')) {
+        const s = document.createElement('style');
+        s.id = '_bv_style';
+        s.textContent =
+          '#bv-mic{position:fixed;bottom:1.2rem;right:4.5rem;width:44px;height:44px;' +
+          'border-radius:50%;font-size:1.1rem;cursor:pointer;z-index:9999;' +
+          'display:flex;align-items:center;justify-content:center;' +
+          'border:2px solid #333;background:#1a1a1a;color:#555;' +
+          'transition:background .15s,border-color .15s,color .15s}' +
+          '#bv-mic.on{background:#3ddc84;color:#000;border-color:#3ddc84}' +
+          '#bv-mic.session{background:#1a3a1a;color:#3ddc84;border-color:#3ddc84}' +
+          '#bv-mic.always{background:#0a1a0a;color:#3ddc84;border-color:#3ddc84}' +
+          '#bv-mic-tip{position:fixed;bottom:4.2rem;right:3.5rem;background:#1a1a1a;' +
+          'border:1px solid #333;border-radius:6px;padding:.3rem .6rem;' +
+          'font-size:.7rem;color:#888;pointer-events:none;white-space:nowrap;' +
+          'opacity:0;transition:opacity .2s}' +
+          '#bv-mic:hover+#bv-mic-tip,#bv-mic:focus+#bv-mic-tip{opacity:1}';
+        document.head.appendChild(s);
       }
+      _micBtn = document.createElement('button');
+      _micBtn.id = 'bv-mic';
+      _micBtn.setAttribute('aria-label', 'Voice commands — say "help" to activate');
+      _micBtn.textContent = '🎤';
+      _micBtn.onclick = () => {
+        if (isBlind()) { speak('Voice always on. Say help for commands.'); return; }
+        if (_sessionOpen) { _closeSession(false); speak('Voice off.'); }
+        else { _openSession(); }
+      };
+      document.body.appendChild(_micBtn);
+
+      // Tooltip
+      const tip = document.createElement('div');
+      tip.id = 'bv-mic-tip';
+      tip.textContent = 'Say "help" to activate voice';
+      document.body.appendChild(tip);
     }
-    if (!_micBtn) return;
-    // Single className change — no layout thrash
-    _micBtn.className = on ? 'on' : (alwaysOn() ? 'ao' : '');
+
+    if (isBlind()) {
+      _micBtn.className   = 'always';
+      _micBtn.textContent = '🎙️';
+      return;
+    }
+
+    switch (state) {
+      case 'on':
+        _micBtn.className   = 'on';
+        _micBtn.textContent = '🎙️';
+        break;
+      case 'session':
+        _micBtn.className   = 'session';
+        _micBtn.textContent = '🎙️';
+        break;
+      case 'off':
+      default:
+        _micBtn.className   = '';
+        _micBtn.textContent = '🎤';
+        break;
+    }
+  }
+
+  function _updateStatus(msg) {
+    // Update any status element on the page if it exists
+    const el = document.getElementById('msg') ||
+               document.getElementById('vmic-status') ||
+               document.getElementById('voice-pill-text');
+    if (el) el.textContent = msg;
   }
 
   /* ═══════════════════════════════════════════════════
@@ -249,10 +353,15 @@
   function _handleCmd(text) {
     const pg = _page();
 
-    // Global commands
+    // "close" / "stop" / "voice off" — end the session
+    if (_match(text, ['voice off','close voice','stop listening','cancel'])) {
+      speak('Voice off.'); _closeSession(false); return;
+    }
     if (_match(text, ['stop talking','stop','quiet','silence'])) {
       stopSpeaking(); return;
     }
+
+    // Navigation
     if (_match(text, ['go home','open home','home page','main page'])) {
       speak('Going home.'); setTimeout(() => window.location.href = 'index.html', 600); return;
     }
@@ -262,9 +371,13 @@
     if (_match(text, ['open dashboard','teacher dashboard','dashboard'])) {
       speak('Opening dashboard.'); setTimeout(() => window.location.href = 'dashboard.html', 600); return;
     }
+
+    // Help
     if (_match(text, ['help','what can i say','commands','instructions'])) {
       _speakHelp(); return;
     }
+
+    // Accessibility
     if (_match(text, ['increase text','bigger text','larger text','zoom in'])) {
       _changeFont(2); speak('Text bigger.'); return;
     }
@@ -294,7 +407,7 @@
   /* ── Welcome ── */
   function _welcomeCmd(text) {
     if (_match(text, ['enter','go','start','continue'])) {
-      const inp = document.getElementById('uname');
+      const inp  = document.getElementById('uname');
       const name = inp ? inp.value.trim() : '';
       if (!name) speak('Please say your name first.');
       else { speak('Entering.'); if (window.enter) window.enter(); }
@@ -322,11 +435,11 @@
         return;
       }
     }
-    if (_match(text, ['simplify']))       { _switchTab('simplify');  return; }
-    if (_match(text, ['translate']))      { _switchTab('translate'); return; }
-    if (_match(text, ['voice']))          { _switchTab('voice');     return; }
-    if (_match(text, ['ocr','scan']))     { _switchTab('ocr');       return; }
-    if (_match(text, ['timer','pomodoro'])) { _switchTab('timer');   return; }
+    if (_match(text, ['simplify']))         { _switchTab('simplify');  return; }
+    if (_match(text, ['translate']))        { _switchTab('translate'); return; }
+    if (_match(text, ['voice','voice demo'])) { _switchTab('voice');   return; }
+    if (_match(text, ['ocr','scan']))       { _switchTab('ocr');       return; }
+    if (_match(text, ['timer','pomodoro'])) { _switchTab('timer');     return; }
     speak('Say a profile name or feature. Say help for all commands.');
   }
 
@@ -362,7 +475,7 @@
     if (_match(text, ['quiz','start quiz','question'])) {
       const q = document.querySelector('.quiz-box');
       if (q) {
-        q.scrollIntoView({ behavior: 'instant' }); // FIX: smooth scroll causes layout stutter
+        q.scrollIntoView({ behavior: 'instant' });
         const qq = document.querySelector('.quiz-q');
         speak(qq ? 'Quiz. ' + qq.textContent : 'Quiz.');
       }
@@ -370,8 +483,7 @@
     }
     if (_match(text, ['read question','what is the question'])) {
       const qq = document.querySelector('.quiz-q');
-      if (qq) speak(qq.textContent);
-      return;
+      if (qq) speak(qq.textContent); return;
     }
     if (_match(text, ['read options','what are the options','list options','read answers'])) {
       const opts = document.querySelectorAll('.qopt');
@@ -382,21 +494,18 @@
       }
       return;
     }
-
-    // Option selection: "option 1", "answer two", "choice 3" etc.
-    const numMap = { one: 0, two: 1, three: 2, four: 3, '1': 0, '2': 1, '3': 2, '4': 3 };
+    const numMap = { one:0, two:1, three:2, four:3, '1':0, '2':1, '3':2, '4':3 };
     const nm = text.match(/(?:option|answer|choice|select|pick)\s*([1-4]|one|two|three|four)/);
     if (nm) {
       const idx = numMap[nm[1]];
       if (idx !== undefined) {
         const btn = document.querySelectorAll('.qopt')[idx];
         if (btn && !btn.disabled) btn.click();
-        else if (btn && btn.disabled) speak('Already answered. Say next to continue.');
+        else if (btn?.disabled) speak('Already answered. Say next to continue.');
         else speak('Option not found.');
       }
       return;
     }
-
     if (_match(text, ['hindi']))   { speak('Hindi.');   if (window.translateLesson) window.translateLesson('hi'); return; }
     if (_match(text, ['marathi'])) { speak('Marathi.'); if (window.translateLesson) window.translateLesson('mr'); return; }
     if (_match(text, ['tamil']))   { speak('Tamil.');   if (window.translateLesson) window.translateLesson('ta'); return; }
@@ -404,8 +513,7 @@
     if (_match(text, ['stop reading','stop speaking'])) { stopSpeaking(); return; }
     if (_match(text, ['which lesson','where am i'])) {
       const h = document.querySelector('.lesson-title');
-      speak(h ? 'You are on: ' + h.textContent : 'Lesson page.');
-      return;
+      speak(h ? 'You are on: ' + h.textContent : 'Lesson page.'); return;
     }
     if (_match(text, ['scan','ocr','scan image'])) { if (window.openOCR) window.openOCR(); return; }
 
@@ -434,14 +542,16 @@
   /* ── Help ── */
   function _speakHelp() {
     const pages = {
-      welcome:   'Say your name, then your profile, then enter.',
-      home:      'Say a profile: blind, dyslexic, ADHD, deaf, motor, or standard. Or say simplify, translate, timer.',
+      welcome:   'Say your name, say your profile, then say enter.',
+      home:      'Say blind, dyslexic, ADHD, deaf, motor, or standard. Or say simplify, translate, timer.',
       lesson:    'Say: read lesson, next, previous, quiz, option 1 to 4, simplify, translate Hindi, or complete.',
       dashboard: 'Say: total students, average progress, need help, export, or refresh.'
     };
     speak(
-      'Global commands: go home, open lessons, dashboard, increase text, decrease text, stop, logout. ' +
-      (pages[_page()] || '')
+      'Voice commands. ' +
+      'Global: go home, open lessons, dashboard, increase text, stop, logout. ' +
+      (pages[_page()] || '') +
+      ' Say voice off to close.'
     );
   }
 
@@ -453,12 +563,8 @@
   }
 
   /* ═══════════════════════════════════════════════════
-     PAGE INTRO
-     Speaks full instructions first, THEN starts the
-     mic only after speech has completely finished.
-     This prevents the mic from picking up TTS output
-     and breaking recognition.
-     speak(text, callback) — callback fires on onend.
+     PAGE INTRO — speaks on load for blind/home only.
+     Mic starts AFTER speech ends (callback pattern).
   ═══════════════════════════════════════════════════ */
   function _intro() {
     const pg      = _page();
@@ -466,33 +572,25 @@
     const name    = localStorage.getItem('brainies_name') || '';
     const greet   = name ? 'Welcome back ' + name + '. ' : '';
 
-    // speak(text, cb) — cb runs after speech fully ends, then mic starts
     if (pg === 'home') {
       speak(
         greet + 'Your profile is ' + profile + '. ' +
-        'Say open lessons to start learning. ' +
-        'Say help for all commands.',
-        startListening   // mic turns on AFTER instructions finish
+        'Say open lessons to start. Say help for voice commands.',
+        startListening
       );
     } else if (pg === 'lesson') {
       const h = document.querySelector('.lesson-title');
       speak(
-        greet +
-        'You are on lesson: ' + (h ? h.textContent.trim() + '. ' : '') +
-        'Say read lesson to hear the content. ' +
-        'Say read quiz to hear the question. ' +
-        'Say next to go forward. Say help for all commands.',
+        greet + 'Lesson: ' + (h ? h.textContent.trim() + '. ' : '') +
+        'Say read lesson, quiz, or help for voice commands.',
         startListening
       );
     } else if (pg === 'dashboard') {
       speak(
-        greet + 'Teacher dashboard. ' +
-        'Say total students, average progress, or refresh. ' +
-        'Say help for all commands.',
+        greet + 'Teacher dashboard. Say help for voice commands.',
         startListening
       );
     } else {
-      // Fallback for any other page
       startListening();
     }
   }
@@ -504,20 +602,17 @@
     const pg      = _page();
     const profile = localStorage.getItem('brainies_profile');
 
+    // Alt+V = manual session toggle
     document.addEventListener('keydown', e => {
       if (e.altKey && e.key === 'v') {
-        if (alwaysOn()) {
-          speak('Voice is always on in blind mode. Say help for commands.');
-        } else {
-          if (_active) { stopListening(); speak('Voice off.'); }
-          else { speak('Voice on.'); startListening(); }
-        }
+        if (isBlind()) { speak('Voice always on. Say help.'); return; }
+        if (_sessionOpen) { _closeSession(false); speak('Voice off.'); }
+        else { _openSession(); }
       }
       if (e.key === 'Escape') stopSpeaking();
     });
 
-    // Welcome page has its own engine — skip
-    if (pg === 'welcome') return;
+    if (pg === 'welcome') return; // welcome has its own engine
 
     if (profile === 'blind') {
       document.body.classList.add('mode-blind');
@@ -525,11 +620,19 @@
       if (bar) bar.className = 'voice-bar show';
     }
 
-    const shouldAutoStart = (profile === 'blind') || (pg === 'home');
-    if (!shouldAutoStart) return;
+    const run = () => setTimeout(() => {
+      // Always create the mic button
+      _micUI('off');
 
-    // FIX: 400ms delay (was 700ms) — page has painted by then
-    const run = () => setTimeout(_intro, 400);
+      if (isBlind()) {
+        // Blind: speak intro then start always-on
+        _intro();
+      } else {
+        // Everyone else: start silent wake listener only
+        _startWake();
+      }
+    }, 400);
+
     if (document.readyState === 'complete') run();
     else window.addEventListener('load', run);
   }
@@ -542,7 +645,9 @@
     stopSpeaking,
     startListening,
     stopListening,
-    isAlwaysOn: alwaysOn
+    isAlwaysOn: isBlind,
+    openSession: _openSession,
+    closeSession: _closeSession
   };
 
   _boot();
