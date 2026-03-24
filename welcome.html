@@ -200,9 +200,10 @@ body{
   </div>
 
   <div class="vcmds">
-    <strong>🎙️ Voice commands — always listening:</strong>
-    <code>"my name is Priya"</code> · <code>"blind"</code> / <code>"dyslexic"</code> / <code>"ADHD"</code> / <code>"deaf"</code> / <code>"motor"</code><br/>
-    <code>"enter"</code> or <code>"start"</code> → open app · <code>"repeat"</code> → instructions · <code>"stop"</code>
+    <strong>🎙️ Voice guide — just speak:</strong>
+    Step 1: <code>"blind"</code> / <code>"dyslexic"</code> / <code>"ADHD"</code> / <code>"deaf"</code> / <code>"motor"</code> / <code>"standard"</code><br/>
+    Step 2: <code>"my name is Priya"</code><br/>
+    Step 3: <code>"enter"</code> or click the button · <code>"repeat"</code> to hear again · <code>"stop"</code>
   </div>
 
   <div class="mic-area">
@@ -419,13 +420,19 @@ function toggleNameMic() {
     onName();
     nameRecogOn = false;
     document.getElementById('name-mic').className = 'name-mic';
-    if (prof) speak('Name set to ' + cap + '. Entering now.', enter);
-    else speak('Name set to ' + cap + '. Now say your profile.');
+    _step = 2; speak('Welcome ' + cap + '! Entering now.', enter);
   };
   nameRecog.onerror = nameRecog.onend = () => { nameRecogOn = false; document.getElementById('name-mic').className = 'name-mic'; };
   nameRecog.start();
   speak('Say your name.');
 }
+
+/* ── ONBOARDING STEP TRACKER
+   Step 0 → ask profile  (situation first)
+   Step 1 → ask name     (after profile chosen)
+   Step 2 → ready to enter
+*/
+let _step = 0; // 0 = need profile, 1 = need name, 2 = ready
 
 /* ── COMMAND HANDLER */
 const PMAP = {
@@ -439,46 +446,75 @@ const PMAP = {
 
 function onCommand(txt) {
   if (/\b(stop|quiet|silence|cancel)\b/.test(txt)) { stopSpeak(); return; }
-  if (/\b(repeat|help|instructions)\b/.test(txt))  { speakInstructions(); return; }
+  if (/\b(repeat|help|instructions)\b/.test(txt))  { speakStep(); return; }
 
-  const nm = txt.match(/(?:my name is|i am|i'm|call me|name is)\s+([a-zA-Z][a-zA-Z ]{1,28})/i);
-  if (nm) {
-    const raw = nm[1].trim();
-    if (!Object.values(PMAP).flat().some(w => raw.toLowerCase().startsWith(w))) {
-      const cap = raw.replace(/\b\w/g, c => c.toUpperCase());
-      document.getElementById('uname').value = cap;
-      onName();
-      if (prof) speak('Name set to ' + cap + '. Entering now.', enter);
-      else speak('Name set to ' + cap + '. Now say your profile.');
-      return;
-    }
-  }
-
-  for (const [p, words] of Object.entries(PMAP)) {
-    if (words.some(w => txt.includes(w))) {
-      pick(document.querySelector(`.pb[data-p="${p}"]`));
-      document.getElementById('blind-hero').className = p === 'blind' ? 'blind-hero show' : 'blind-hero';
-      const name = document.getElementById('uname').value.trim();
-      if (name) speak(p + ' selected. Welcome ' + name + '! Entering now.', enter);
-      else speak(p + ' selected. Now say your name.');
-      return;
-    }
-  }
-
-  if (/\b(enter|start|go|begin|open)\b/.test(txt)) { enter(); return; }
   if (/bigger|increase/.test(txt)) { changeFontSize(2); speak('Bigger.'); return; }
   if (/smaller|decrease/.test(txt)) { changeFontSize(-2); speak('Smaller.'); return; }
+
+  // ── STEP 0: waiting for profile ──
+  if (_step === 0) {
+    for (const [p, words] of Object.entries(PMAP)) {
+      if (words.some(w => txt.includes(w))) {
+        pick(document.querySelector(`.pb[data-p="${p}"]`));
+        document.getElementById('blind-hero').className = p === 'blind' ? 'blind-hero show' : 'blind-hero';
+        _step = 1;
+        speak(p + ' selected. Now please say your name. For example, my name is Priya.');
+        return;
+      }
+    }
+    speak('Please say your situation first — blind, dyslexic, ADHD, deaf, motor, or standard.');
+    return;
+  }
+
+  // ── STEP 1: waiting for name ──
+  if (_step === 1) {
+    const nm = txt.match(/(?:my name is|i am|i'm|call me|name is)\s+([a-zA-Z][a-zA-Z ]{1,28})/i);
+    if (nm) {
+      const raw = nm[1].trim();
+      if (!Object.values(PMAP).flat().some(w => raw.toLowerCase().startsWith(w))) {
+        const cap = raw.replace(/\b\w/g, c => c.toUpperCase());
+        document.getElementById('uname').value = cap;
+        onName();
+        _step = 2;
+        speak('Welcome ' + cap + '! Entering now.', enter);
+        return;
+      }
+    }
+    // Maybe they said just a plain name without prefix
+    const plain = txt.trim().replace(/[^a-zA-Z ]/g, '').trim();
+    if (plain && plain.split(' ').length <= 3 && !Object.values(PMAP).flat().some(w => plain.toLowerCase().includes(w))) {
+      const cap = plain.replace(/\b\w/g, c => c.toUpperCase());
+      document.getElementById('uname').value = cap;
+      onName();
+      _step = 2;
+      speak('Welcome ' + cap + '! Entering now.', enter);
+      return;
+    }
+    speak('Please say your name. For example, my name is Priya.');
+    return;
+  }
+
+  // ── STEP 2: both done, waiting for enter ──
+  if (/\b(enter|start|go|begin|open)\b/.test(txt)) { enter(); return; }
+}
+
+function speakStep(cb) {
+  if (_step === 0) {
+    speak(
+      'Welcome to Brainies. ' +
+      'First, tell me your situation — say blind, dyslexic, ADHD, deaf, motor, or standard.',
+      cb
+    );
+  } else if (_step === 1) {
+    speak('Now say your name. For example, my name is Priya.', cb);
+  } else {
+    speak('All set! Say enter to open the app, or click Enter Brainies.', cb);
+  }
 }
 
 function speakInstructions(cb) {
-  speak(
-    'Welcome to Brainies. ' +
-    'Step 1: say your name — for example, my name is Priya. ' +
-    'Step 2: say your profile — blind, dyslexic, ADHD, deaf, motor, or standard. ' +
-    'Step 3: say enter to open the app. ' +
-    'Say repeat anytime to hear this again.',
-    cb  // mic starts only after this finishes
-  );
+  _step = 0;
+  speakStep(cb);
 }
 
 /* ── UI */
