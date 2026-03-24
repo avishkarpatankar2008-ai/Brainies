@@ -85,6 +85,8 @@
   function _muteMics() {
     if (_micMuted) return;
     _micMuted = true;
+    // Disable the persistent permission stream track during TTS
+    if (_permStream) _permStream.getAudioTracks().forEach(t => { t.enabled = false; });
     // Pause wake listener
     if (_wakeActive && _wake) { try { _wake.stop(); } catch {} }
     // Pause command session mic
@@ -96,6 +98,8 @@
   function _unmuteMics() {
     if (!_micMuted) return;
     _micMuted = false;
+    // Re-enable the persistent permission stream track
+    if (_permStream) _permStream.getAudioTracks().forEach(t => { t.enabled = true; });
     // Restart whatever was running before speech
     if (isBlind()) {
       _scheduleAO(120);       // restart always-on mic
@@ -648,9 +652,40 @@
   }
 
   /* ═══════════════════════════════════════════════════
+     PERSISTENT MIC PERMISSION
+     Call getUserMedia once at startup and keep the stream
+     alive so the browser never asks for mic permission again
+     during this session. SpeechRecognition will reuse the
+     already-granted permission without prompting.
+  ═══════════════════════════════════════════════════ */
+  let _permStream = null;
+
+  function _acquireMicPermission() {
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) return;
+    // Already acquired — do nothing
+    if (_permStream) return;
+    navigator.mediaDevices.getUserMedia({ audio: true })
+      .then(stream => {
+        _permStream = stream;
+        // Keep all tracks active (do NOT stop them — stopping releases permission)
+        // Mute the tracks so no audio is actually captured/sent anywhere,
+        // but the permission grant stays alive for the session.
+        stream.getAudioTracks().forEach(t => { t.enabled = false; });
+      })
+      .catch(err => {
+        // Permission denied or not available — voice will still work
+        // but may prompt per-use. Log silently.
+        console.warn('[BV] Mic permission not pre-granted:', err.name);
+      });
+  }
+
+  /* ═══════════════════════════════════════════════════
      BOOT
   ═══════════════════════════════════════════════════ */
   function _boot() {
+    // Pre-acquire mic permission and hold stream so browser never re-prompts
+    _acquireMicPermission();
+
     const pg      = _page();
     const profile = localStorage.getItem('brainies_profile');
 
