@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Brainies — Lessons</title>
+<!--
+  PERF: font-display=swap prevents render-blocking while fonts load.
+  Only load weights actually used (400,700) — dropped 500,600.
+-->
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;700&family=Sora:wght@700;800&display=swap" rel="stylesheet"/>
+<!--
+  PERF: OpenDyslexic loaded lazily via JS only when dyslexic mode active.
+  Removed synchronous <link> here — saves ~150 KB on every page load.
+-->
+<style>
+/* ── SKIP NAV (Blind + Motor) ── */
+.skip-link{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}
+.skip-link:focus{position:fixed;top:.5rem;left:.5rem;width:auto;height:auto;padding:.55rem 1rem;
+  background:var(--green);color:#000;font-weight:700;border-radius:7px;z-index:9999;font-size:.9rem}
+/* ── FOCUS VISIBLE (keyboard users) ── */
+:focus-visible{outline:3px solid var(--green)!important;outline-offset:3px!important}
+/* ── DEAF: visual quiz result banner ── */
+#deaf-result-banner{display:none;padding:.65rem 1.1rem;border-radius:8px;font-size:.95rem;font-weight:700;
+  margin-top:.75rem;text-align:center;border:2px solid transparent}
+#deaf-result-banner.correct{display:block;background:rgba(34,197,94,.18);border-color:#22c55e;color:#16a34a}
+#deaf-result-banner.wrong{display:block;background:rgba(239,68,68,.15);border-color:#ef4444;color:#dc2626}
+/* ── ADHD: live region for status ── */
+#adhd-status{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0b0d0f;--bg2:#141618;--bg3:#1e2124;
+  --border:#2c2f33;--border2:#3d4247;
+  --text:#f0f2f4;--text2:#8b949e;
+  --green:#3ddc84;--green-dim:rgba(61,220,132,.12);
+  --red:#f87171;--radius:12px;
+}
+body.light{
+  --bg:#f4f6f8;--bg2:#ffffff;--bg3:#edf0f3;
+  --border:#dde1e7;--border2:#bcc3cc;
+  --text:#1a1d21;--text2:#596475;
+  --green:#1a9e56;--green-dim:rgba(26,158,86,.10);
+}
+
+/* ── ACCESSIBILITY MODES ── */
+body.mode-dyslexic{--bg:#fefce8;--bg2:#fef9c3;--bg3:#fef08a;--border:#c8b400;--border2:#b8a400;--text:#111;--text2:#444;font-size:19px;line-height:2}
+body.mode-dyslexic,body.mode-dyslexic *{font-family:'OpenDyslexic','Courier New',monospace!important;letter-spacing:.06em!important;word-spacing:.15em!important}
+/* BUG8 FIX: dyslexic quiz feedback uses icons+border not just color */
+body.mode-dyslexic .qopt.correct{background:#0a3d0a!important;border-color:#166534!important;color:#fff!important}
+body.mode-dyslexic .qopt.wrong{background:#3d0a0a!important;border-color:#991b1b!important;color:#fff!important}
+body.mode-dyslexic .quiz-fb.ok::before{content:'✅ ';}
+body.mode-dyslexic .quiz-fb.err::before{content:'❌ ';}
+
+body.mode-adhd{--bg:#f8f9fa;--bg2:#fff;--bg3:#f1f3f5;--border:#dee2e6;--border2:#ced4da;--text:#111;--text2:#555}
+body.mode-adhd *{animation:none!important;transition:none!important}
+body.mode-adhd .lesson-sidebar{display:none!important}
+/* BUG9 FIX: when sidebar hidden, main content takes full width */
+body.mode-adhd .layout{grid-template-columns:1fr!important}
+
+body.mode-blind{--bg:#000;--bg2:#111;--bg3:#1a1a1a;--border:#555;--border2:#777;--text:#fff;--text2:#ccc;font-size:20px}
+body.mode-blind button,body.mode-blind a{outline:3px solid #fff!important;outline-offset:3px}
+
+/* BUG13+15 FIX: caption truncates to one readable line, clears via JS onend */
+body.mode-deaf .caption-bar{display:flex!important}
+.caption-bar.deaf-on{display:flex!important}
+.caption-bar span{max-width:80vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+/* BUG16 FIX: motor mode targets sidebar items (divs with onclick) too */
+body.mode-motor button,body.mode-motor a,body.mode-motor .sb-item{min-height:56px!important;font-size:18px!important;padding:.75rem 1.25rem!important}
+body.mode-motor .sb-item{display:flex;align-items:center}
+
+/* PERF: will-change only on elements that actually animate */
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);
+     transition:background .2s,color .2s;font-size:16px;line-height:1.6}
+
+.caption-bar{display:none;align-items:center;gap:.6rem;background:#0f172a;padding:.5rem 1.75rem;font-size:.82rem;color:#7dd3fc;border-bottom:1px solid #1e3a5f}
+.cap-dot{width:7px;height:7px;border-radius:50%;background:#60a5fa;animation:bl 1.2s infinite;flex-shrink:0}
+@keyframes bl{0%,100%{opacity:1}50%{opacity:.2}}
+
+.offline-bar{display:none;background:rgba(251,191,36,.1);border-bottom:1px solid rgba(251,191,36,.2);padding:.45rem 1.75rem;font-size:.8rem;color:#fbbf24;text-align:center}
+.offline-bar.show{display:block}
+
+.toast-wrap{position:fixed;bottom:5rem;left:50%;transform:translateX(-50%);z-index:9000;display:flex;flex-direction:column;gap:.4rem;align-items:center;pointer-events:none}
+.toast{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:.5rem 1rem;font-size:.82rem;color:var(--text);white-space:nowrap;animation:tIn .15s ease}
+.toast.ok{background:var(--green-dim);border-color:var(--green);color:var(--green)}
+.toast.err{background:rgba(248,113,113,.08);border-color:var(--red);color:var(--red)}
+@keyframes tIn{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:none}}
+
+nav{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;padding:.75rem 1.5rem;
+    background:var(--bg2);border-bottom:1px solid var(--border);
+    position:sticky;top:0;z-index:50;
+    /* PERF: promote nav to its own layer — prevents repaint on scroll */
+    will-change:transform;transform:translateZ(0)}
+.nav-logo{color:var(--green);font-size:1.05rem;font-weight:700;text-decoration:none;font-family:'Sora',sans-serif}
+.nav-right{margin-left:auto;display:flex;gap:.35rem;flex-wrap:wrap;align-items:center}
+/* PERF: transition only color/border, not "all" — avoids triggering layout */
+nav a,nav button,nav select{
+  padding:.35rem .7rem;border-radius:6px;border:1px solid var(--border2);
+  background:var(--bg3);color:var(--text2);font-size:.78rem;cursor:pointer;
+  text-decoration:none;font-family:'DM Sans',sans-serif;
+  transition:color .15s,border-color .15s}
+nav a:hover,nav button:hover{border-color:var(--green);color:var(--green)}
+
+.layout{display:grid;grid-template-columns:220px 1fr;min-height:calc(100vh - 52px)}
+@media(max-width:680px){.layout{grid-template-columns:1fr}.lesson-sidebar{display:none!important}}
+
+.lesson-sidebar{
+  background:var(--bg2);border-right:1px solid var(--border);
+  padding:1.1rem .7rem;position:sticky;top:52px;
+  height:calc(100vh - 52px);overflow-y:auto;
+  /* PERF: contain layout/paint to sidebar box */
+  contain:layout paint}
+.sb-hd{font-size:.68rem;text-transform:uppercase;letter-spacing:.1em;color:var(--text2);margin-bottom:.4rem;padding:0 .35rem}
+.sb-prog{height:3px;background:var(--border2);border-radius:50px;margin:.4rem .35rem .8rem}
+.sb-prog-fill{height:3px;border-radius:50px;background:var(--green);transition:width .3s}
+.sb-item{
+  display:flex;align-items:center;gap:.5rem;padding:.5rem .55rem;
+  border-radius:7px;cursor:pointer;font-size:.8rem;margin-bottom:.15rem;
+  border:1px solid transparent;color:var(--text2);
+  transition:color .12s,border-color .12s,background .12s}
+.sb-item:hover{background:var(--bg3)}
+.sb-item.active{background:var(--bg3);border-color:var(--green);color:var(--green)}
+.sb-num{width:20px;height:20px;border-radius:50%;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:.68rem;font-weight:700;flex-shrink:0;border:1px solid var(--border2)}
+.sb-item.done .sb-num{background:var(--green);color:#000;border-color:var(--green)}
+
+.lesson-main{padding:1.75rem 2.25rem 4rem;max-width:720px}
+@media(max-width:900px){.lesson-main{padding:1.25rem .9rem}}
+
+.lesson-tag{font-size:.7rem;text-transform:uppercase;letter-spacing:.1em;color:var(--green);margin-bottom:.3rem}
+.lesson-title{font-family:'Sora',sans-serif;font-size:1.8rem;font-weight:700;margin-bottom:.35rem;line-height:1.2}
+.lesson-meta{font-size:.76rem;color:var(--text2);margin-bottom:1.5rem;display:flex;align-items:center;gap:.45rem;flex-wrap:wrap}
+.meta-tag{padding:.15rem .5rem;border-radius:20px;background:var(--green-dim);border:1px solid rgba(61,220,132,.2);color:var(--green);font-size:.7rem}
+.content p{margin-bottom:1rem;font-size:.93rem;line-height:1.75}
+.content h3{font-size:1rem;font-weight:700;margin:1.4rem 0 .5rem;font-family:'Sora',sans-serif}
+.callout{border-left:3px solid var(--green);padding:.8rem 1rem;background:var(--bg2);border-radius:0 7px 7px 0;margin:1rem 0;font-size:.86rem;color:var(--text2);line-height:1.6}
+.callout strong{color:var(--green);display:block;margin-bottom:.25rem}
+
+.quiz-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.35rem;margin-top:1.75rem}
+.quiz-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:.3rem;flex-wrap:wrap;gap:.4rem}
+.quiz-title{font-size:.95rem;font-weight:700;font-family:'Sora',sans-serif}
+.quiz-score-badge{font-size:.73rem;padding:.18rem .55rem;border-radius:20px;background:var(--green-dim);border:1px solid rgba(61,220,132,.2);color:var(--green);font-weight:600}
+.quiz-q{font-size:.9rem;margin-bottom:.9rem;color:var(--text2);line-height:1.5}
+.quiz-opts{display:flex;flex-direction:column;gap:.45rem}
+.qopt{
+  padding:.72rem .95rem;border-radius:8px;border:1px solid var(--border2);
+  background:var(--bg3);cursor:pointer;font-size:.86rem;
+  text-align:left;color:var(--text);font-family:'DM Sans',sans-serif;
+  /* PERF: only transition color + border, not all */
+  transition:color .12s,border-color .12s,background .12s}
+.qopt:hover:not(:disabled){border-color:var(--green);background:var(--green-dim)}
+.qopt:disabled{cursor:not-allowed;opacity:.8}
+.qopt.correct{border-color:#22c55e!important;background:rgba(34,197,94,.15)!important;color:#22c55e!important;font-weight:600}
+.qopt.wrong{border-color:#ef4444!important;background:rgba(239,68,68,.12)!important;color:#ef4444!important}
+.quiz-fb{margin-top:.7rem;padding:.75rem .95rem;border-radius:8px;font-size:.84rem;display:none;line-height:1.5}
+.quiz-fb.show{display:block}
+.quiz-fb.ok{background:rgba(34,197,94,.12);border:1px solid rgba(34,197,94,.3);color:#22c55e}
+.quiz-fb.err{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.3);color:#ef4444}
+.quiz-next{display:none;gap:.45rem;margin-top:.8rem;flex-wrap:wrap}
+.quiz-next.show{display:flex}
+
+.lesson-nav{display:flex;justify-content:space-between;margin-top:2.25rem;padding-top:1.25rem;border-top:1px solid var(--border);gap:.65rem;flex-wrap:wrap}
+.navbtn{padding:.6rem 1.15rem;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:.86rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:color .12s,border-color .12s}
+.navbtn:hover{border-color:var(--green);color:var(--green)}
+.navbtn.primary{background:var(--green);color:#000;border-color:var(--green);font-weight:700}
+
+#ocr-modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.72);z-index:500;align-items:center;justify-content:center}
+#ocr-modal.show{display:flex}
+.ocr-box{background:var(--bg2);border:1px solid var(--border2);border-radius:var(--radius);padding:1.65rem;width:min(460px,95vw);position:relative}
+.ocr-box h3{font-size:.95rem;margin-bottom:.7rem;font-family:'Sora',sans-serif}
+.ocr-upload{border:2px dashed var(--border2);border-radius:7px;padding:1.75rem;text-align:center;cursor:pointer;color:var(--text2);font-size:.86rem;transition:border-color .15s,color .15s}
+.ocr-upload:hover{border-color:var(--green);color:var(--green)}
+.ocr-result{margin-top:.7rem;padding:.7rem;background:var(--bg3);border-radius:6px;font-size:.83rem;color:var(--text2);max-height:200px;overflow-y:auto;display:none}
+.ocr-actions{display:none;gap:.45rem;margin-top:.45rem;flex-wrap:wrap}
+.modal-close{position:absolute;top:.7rem;right:.7rem;background:var(--bg3);border:1px solid var(--border2);border-radius:5px;padding:.28rem .65rem;cursor:pointer;color:var(--text2);font-size:.78rem;font-family:'DM Sans',sans-serif}
+
+/* PERF: vfab uses transform for animation — GPU composited, zero layout cost */
+#vfab{
+  position:fixed;bottom:1.2rem;right:1.2rem;width:48px;height:48px;
+  border-radius:50%;background:var(--green);color:#000;border:none;
+  font-size:1.15rem;cursor:pointer;z-index:99;
+  display:flex;align-items:center;justify-content:center;
+  box-shadow:0 2px 10px rgba(61,220,132,.28);
+  transition:background .15s,transform .1s;
+  will-change:transform}
+#vfab:hover{transform:scale(1.07)}
+#vfab.on{background:#f97316;box-shadow:0 2px 10px rgba(249,115,22,.28)}
+/* PERF: pulse via transform+opacity only — no box-shadow animation (expensive) */
+#vfab.on::after{
+  content:'';position:absolute;inset:-4px;border-radius:50%;
+  border:2px solid #f97316;
+  animation:fabPulse .9s ease infinite;pointer-events:none}
+@keyframes fabPulse{0%{opacity:.6;transform:scale(1)}100%{opacity:0;transform:scale(1.55)}}
+
+/* ── VOICE STATUS PILL ── */
+#voice-pill{
+  position:fixed;top:.6rem;right:4.5rem;
+  background:rgba(10,26,10,.92);border:1px solid var(--green);
+  border-radius:20px;padding:.28rem .75rem;
+  font-size:.72rem;color:var(--green);
+  display:none;align-items:center;gap:.45rem;
+  z-index:98;backdrop-filter:blur(4px);pointer-events:none}
+#voice-pill.show{display:flex}
+.vp-dot{width:6px;height:6px;border-radius:50%;background:var(--green);
+  animation:vpPulse 1.2s ease infinite;flex-shrink:0}
+@keyframes vpPulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.3;transform:scale(.7)}}
+#voice-pill-text{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+</style>
+</head>
+<body>
+
+<!-- FIX: skip-nav for blind/motor keyboard users -->
+<a href="#lesson-main" class="skip-link">Skip to lesson content</a>
+<!-- FIX: ADHD polite live region for status announcements -->
+<div id="adhd-status" aria-live="polite" aria-atomic="true" role="status"></div>
+
+<div class="caption-bar" id="caption-bar">
+  <div class="cap-dot"></div>
+  <span id="cap-txt" aria-live="polite" aria-atomic="true"></span>
+</div>
+
+<div class="offline-bar" id="offline-bar">
+  📴 You are offline — cached lessons are still available!
+</div>
+
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<!-- PERF: voice status pill replaces the heavy always-on voice bar -->
+<div id="voice-pill">
+  <div class="vp-dot"></div>
+  <span id="voice-pill-text">Listening…</span>
+</div>
+
+<nav>
+  <a href="index.html" class="nav-logo">🧠 Brainies</a>
+  <div class="nav-right">
+    <button onclick="readLesson()">🔊 Read</button>
+    <button onclick="simplifyLesson()" id="simp-btn">✨ Simplify</button>
+    <button onclick="restoreLesson()" id="restore-btn" style="display:none">↩ Restore</button>
+    <select onchange="translateLesson(this.value);this.value=''" id="lang-sel">
+      <option value="">🌐 Translate</option>
+      <option value="hi">Hindi</option><option value="mr">Marathi</option>
+      <option value="ta">Tamil</option><option value="te">Telugu</option>
+      <option value="bn">Bengali</option><option value="gu">Gujarati</option>
+    </select>
+    <button onclick="openOCR()">📷 Scan</button>
+    <button onclick="changeFontSize(2)">A+</button>
+    <button onclick="changeFontSize(-2)">A-</button>
+    <button onclick="toggleTheme()" id="theme-btn">🌙</button>
+    <a href="index.html">🏠 Home</a>
+  </div>
+</nav>
+
+<div class="layout">
+  <aside class="lesson-sidebar">
+    <div class="sb-hd">Science — Chapter 4</div>
+    <div class="sb-prog"><div class="sb-prog-fill" id="sb-prog"></div></div>
+    <div id="sb-list"></div>
+  </aside>
+  <main class="lesson-main" id="lesson-main"></main>
+</div>
+
+<div id="ocr-modal">
+  <div class="ocr-box">
+    <button class="modal-close" onclick="closeOCR()">✕ Close</button>
+    <h3>📷 Scan Textbook Page</h3>
+    <p style="font-size:.8rem;color:var(--text2);margin-bottom:.7rem">Upload a photo of any textbook page to extract text.</p>
+    <div class="ocr-upload" onclick="document.getElementById('ocr-file').click()"
+         role="button" tabindex="0"
+         onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();document.getElementById('ocr-file').click()}"
+         aria-label="Upload image for text extraction">📷 Click or press Enter to upload image</div>
+    <input type="file" id="ocr-file" accept="image/*" style="display:none" onchange="runOCR(this)"/>
+    <div class="ocr-result" id="ocr-result"></div>
+    <div class="ocr-actions" id="ocr-actions">
+      <button class="navbtn" onclick="sendOCRToSimplify()">→ Simplify</button>
+      <button class="navbtn" onclick="speakOCR()">🔊 Read aloud</button>
+      <button class="navbtn" onclick="closeOCR()">✓ Done</button>
+    </div>
+  </div>
+</div>
+
+<button id="vfab" onclick="toggleVoice()" aria-label="Voice commands — click to toggle, or say help" title="Voice commands">🎙️</button>
+
+<!--
+  PERF: Tesseract loaded on-demand only when OCR modal is opened,
+  not on page load. Saves ~3 MB of JS parsing on every visit.
+-->
+<script src="../assets/js/api.js"></script>
+<script>
+/* ═══════════════════════════════════════════════════════════
+   PERF NOTES — what was slow and what was fixed:
+   1. SpeechRecognition: continuous=true caused browser to hold
+      an open audio stream and process audio in real-time even
+      when the user wasn't speaking → high CPU. Fixed: use
+      continuous=false with instant auto-restart instead.
+   2. interimResults=true fired onresult on every syllable,
+      triggering DOM updates 10-20x per second → jank.
+      Fixed: interimResults=false, only act on final results.
+   3. maxAlternatives=3 forces the speech engine to compute
+      3 transcriptions instead of 1 → 3× CPU per utterance.
+      Fixed: maxAlternatives=1.
+   4. speechSynthesis.cancel() before every speak() call caused
+      the TTS engine to restart mid-sentence, creating a stutter
+      and adding ~200ms latency. Fixed: only cancel if actually
+      speaking, use a lightweight queue.
+   5. renderSidebar() called innerHTML='' + 9× DOM appends on
+      every lesson load AND after every quiz answer → forced
+      layout recalc. Fixed: only re-render changed items, use
+      DocumentFragment for batch DOM writes.
+   6. translate / simplify called APIs serially in a for-loop
+      (await in loop). Fixed: Promise.all for parallel calls.
+   7. OpenDyslexic font link was render-blocking on every page
+      load regardless of profile. Fixed: inject lazily.
+   8. transition:all on nav/buttons triggers layout+paint on
+      hover. Fixed: only transition color/border-color.
+   9. OCR (Tesseract, ~3 MB) was loaded eagerly in a <script>
+      tag. Fixed: dynamic import on first OCR click.
+  10. Voice restart delay was 250 ms between sessions, adding
+      dead time where no speech was being recognised. Fixed: 80ms.
+═══════════════════════════════════════════════════════════ */
+
+// API handled by /assets/js/api.js
+let cur = 0, originalContent = {}, ocrExtracted = '';
+let tesseractReady = false;
+
+/* ── QUIZ ANSWERS ── */
+const QA = {
+  0:{c:1,e:'Plants use photosynthesis — not respiration — to make food from sunlight.'},
+  1:{c:2,e:'The nucleus controls all cell activities and contains DNA.'},
+  2:{c:0,e:'The water cycle: evaporation → clouds → rain (precipitation).'},
+  3:{c:1,e:'Plants absorb carbon dioxide (CO₂) from the air through stomata.'},
+  4:{c:3,e:'Isaac Newton described the law of universal gravitation after observing a falling apple.'},
+  5:{c:1,e:'DNA stands for Deoxyribonucleic Acid.'},
+  6:{c:0,e:'Friction is the force that opposes motion between two surfaces.'},
+  7:{c:1,e:'Earth takes 365.25 days to orbit the Sun — the 0.25 gives us a leap year.'},
+  8:{c:0,e:'Only plants, algae, and some bacteria can photosynthesise.'},
+};
+
+const LESSONS=[
+  {chapter:'Lesson 1',title:'Introduction to Plants',dur:'5 min',
+   content:`<p>Plants are living organisms found almost everywhere on Earth — in forests, deserts, oceans, and frozen tundra. Unlike animals, plants make their own food using sunlight through a process called photosynthesis.</p>
+   <h3>Why plants matter</h3>
+   <p>Plants produce the oxygen we breathe and form the base of all food chains. Without plants, life on Earth would be impossible. There are over 390,000 known plant species, from tiny mosses to giant sequoias that live thousands of years.</p>
+   <div class="callout"><strong>💡 Key fact</strong>Every breath we take depends on plants. They release oxygen as a byproduct of making food from sunlight.</div>`,
+   q:'Which process do plants use to make their own food?',opts:['Respiration','Photosynthesis','Digestion','Fermentation']},
+
+  {chapter:'Lesson 2',title:'Parts of a Plant',dur:'6 min',
+   content:`<p>Every plant has parts that do specific jobs. The main parts are roots, stem, leaves, flowers, and fruit. Each part is essential for the plant to survive and reproduce.</p>
+   <h3>Roots and stem</h3>
+   <p>Roots anchor the plant in the soil and absorb water and minerals. The stem supports the plant and acts as a pipeline, moving water up to the leaves and sugars down to the roots.</p>
+   <h3>Leaves</h3>
+   <p>Leaves are the main site of photosynthesis. Their broad flat shape captures maximum sunlight. Tiny pores called stomata on the underside allow carbon dioxide in and oxygen out.</p>
+   <div class="callout"><strong>⚠ Remember</strong>The nucleus controls all cell activities and contains DNA — this applies to plant cells too, not just animals.</div>`,
+   q:'Which part of a plant cell controls all cell activities?',opts:['Cell wall','Chloroplast','Nucleus','Vacuole']},
+
+  {chapter:'Lesson 3',title:'How Plants Grow',dur:'7 min',
+   content:`<p>Plants grow from seeds through germination. When conditions are right — warmth, moisture, and light — a seed absorbs water and its embryo starts growing. A shoot pushes upward and roots push downward.</p>
+   <h3>The water cycle and plants</h3>
+   <p>Plants depend on the water cycle. Water evaporates from soil and plant leaves, rises as water vapour, condenses into clouds, and falls as rain. This keeps water moving through the environment continuously.</p>
+   <div class="callout"><strong>💡 Key fact</strong>A large tree can release hundreds of litres of water into the atmosphere every single day through transpiration — water evaporating from its leaves.</div>`,
+   q:'What does the water cycle describe?',opts:['Water evaporating, forming clouds, and falling as rain','How plants absorb sunlight','How animals drink water','How rivers reach the sea']},
+
+  {chapter:'Lesson 4',title:'Photosynthesis',dur:'8 min',
+   content:`<p>Photosynthesis is how plants make their own food. Using sunlight, water, and carbon dioxide, plants produce glucose (sugar) and release oxygen. It happens in the green parts of the plant, especially leaves.</p>
+   <h3>The equation</h3>
+   <div class="callout"><strong>💡 Key formula</strong>Carbon dioxide + Water + Sunlight → Glucose + Oxygen<br/>6CO₂ + 6H₂O + light → C₆H₁₂O₆ + 6O₂</div>
+   <p>Photosynthesis happens inside chloroplasts — tiny green structures in plant cells. The green pigment chlorophyll captures sunlight energy. Only the green parts of a plant can photosynthesise.</p>`,
+   q:'What do plants absorb from the air for photosynthesis?',opts:['Oxygen','Carbon dioxide','Nitrogen','Glucose']},
+
+  {chapter:'Lesson 5',title:'Plant Reproduction',dur:'7 min',
+   content:`<p>Plants reproduce in two main ways: sexually using seeds from flowers, and asexually using existing plant parts. Both methods have advantages in different environments.</p>
+   <h3>Pollination</h3>
+   <p>Sexual reproduction needs pollination — pollen transfers from the stamen (male) to the pistil (female). Wind, insects, birds, and bats help pollinate. After fertilisation, seeds develop inside fruit.</p>
+   <div class="callout"><strong>💡 Did you know?</strong>Bees pollinate about one-third of all the food we eat. Without bees, most fruits and vegetables would fail to grow.</div>
+   <h3>Asexual reproduction</h3>
+   <p>New plants can grow from runners (strawberries), bulbs (onions), tubers (potatoes), or cuttings. These produce clones of the parent plant — genetically identical.</p>`,
+   q:'Who formulated the law of universal gravitation?',opts:['Albert Einstein','Galileo Galilei','Charles Darwin','Isaac Newton']},
+
+  {chapter:'Lesson 6',title:'Respiration in Plants',dur:'6 min',
+   content:`<p>Like animals, plants need energy to live and grow. They get energy through cellular respiration — breaking down glucose using oxygen to release energy, carbon dioxide, and water.</p>
+   <h3>Respiration vs Photosynthesis</h3>
+   <p>These processes are nearly opposite. Photosynthesis takes in CO₂ and releases O₂. Respiration takes in O₂ and releases CO₂. During the day photosynthesis dominates; at night only respiration occurs.</p>
+   <div class="callout"><strong>💡 Key fact</strong>DNA stands for Deoxyribonucleic Acid. It carries genetic information in almost all living organisms, including plants.</div>`,
+   q:'What does DNA stand for?',opts:['Deoxyribose Nucleic Acid','Deoxyribonucleic Acid','Diribonucleic Acid','Deoxyribose Natural Acid']},
+
+  {chapter:'Lesson 7',title:'Water Transport',dur:'6 min',
+   content:`<p>Plants have a vascular system to transport water and food. It has two tube types: xylem (carries water upward) and phloem (carries sugars). Together they form the plant's internal highway.</p>
+   <h3>Xylem and phloem</h3>
+   <p>Xylem vessels carry water and minerals from roots up to leaves. Phloem tubes carry dissolved sugars made in leaves down to roots, stems, and growing areas. Water moves up due to transpiration pull — as leaves lose water, more water is pulled up from below.</p>
+   <div class="callout"><strong>⚠ Remember</strong>Friction is the force that opposes motion between surfaces. Water also faces resistance as it travels up narrow xylem tubes.</div>`,
+   q:'What is friction?',opts:['A force opposing motion between surfaces','A form of stored energy','A type of chemical reaction','The pull of gravity']},
+
+  {chapter:'Lesson 8',title:'Nutrients and Soil',dur:'7 min',
+   content:`<p>Plants need mineral nutrients from soil in addition to sunlight and water. The most important are nitrogen (for leaf growth), phosphorus (for roots and flowers), and potassium (for overall health).</p>
+   <h3>Soil structure</h3>
+   <p>Healthy soil is a complex mix of minerals, organic matter, water, air, and billions of microorganisms. Earthworms, bacteria, and fungi break down dead material into nutrients that plant roots absorb.</p>
+   <div class="callout"><strong>💡 Key fact</strong>Earth takes approximately 365.25 days to orbit the Sun. The extra 0.25 is why we add a leap day (Feb 29) every 4 years.</div>`,
+   q:'How long does Earth take to orbit the Sun?',opts:['24 hours','365.25 days','28 days','12 months exactly']},
+
+  {chapter:'Lesson 9',title:'Ecosystems',dur:'8 min',
+   content:`<p>An ecosystem is a community of living organisms — plants, animals, microbes — interacting with each other and with their non-living environment. Plants are the producers in almost every ecosystem.</p>
+   <h3>Food chains and webs</h3>
+   <p>Energy flows through food chains. Plants (producers) are eaten by herbivores (primary consumers), which are eaten by carnivores (secondary consumers). Energy is lost at each level — chains rarely exceed 5 links.</p>
+   <div class="callout"><strong>⚠ Remember</strong>Only plants, algae, and some bacteria can photosynthesise. Animals cannot make food from sunlight — they must eat other organisms.</div>
+   <h3>Biodiversity</h3>
+   <p>Biodiversity is the variety of life in an ecosystem. High biodiversity makes ecosystems stable and resilient. Deforestation, pollution, and climate change are the biggest threats to biodiversity today.</p>`,
+   q:'Which organisms can perform photosynthesis?',opts:['Plants, algae, and some bacteria','All living things','Only plants','Animals and plants']},
+];
+
+/* ─────────────────────────────────────────────────────────
+   TOAST — lightweight, no heavy class manipulation
+───────────────────────────────────────────────────────── */
+function toast(msg,type){
+  const w=document.getElementById('toast-wrap');
+  const t=document.createElement('div');
+  t.className='toast'+(type?' '+type:'');
+  t.textContent=msg;
+  w.appendChild(t);
+  setTimeout(()=>{
+    t.style.cssText='opacity:0;transition:opacity .2s';
+    setTimeout(()=>t.remove(),220);
+  },2200);
+}
+
+/* ─────────────────────────────────────────────────────────
+   TTS — fixed stutter: only cancel if already speaking,
+         no rapid cancel+speak cycles
+───────────────────────────────────────────────────────── */
+let _ttsQueue=[], _ttsBusy=false;
+function speak(txt){
+  if(!('speechSynthesis' in window))return;
+  _ttsQueue=[txt];
+  if(!_ttsBusy)_ttsFlush();
+}
+function _ttsFlush(){
+  if(!_ttsQueue.length){_ttsBusy=false;return;}
+  _ttsBusy=true;
+  const txt=_ttsQueue.shift();
+  if(window.speechSynthesis.speaking||window.speechSynthesis.pending)
+    window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(txt);
+  u.lang='en-IN';u.rate=1.0;u.pitch=1;
+  // Stop mic while app is speaking — mic would pick up TTS and break recognition
+  u.onstart=()=>{
+    if(vOn&&vRecog){try{vRecog.stop();}catch{}}
+    clearTimeout(vRestartTimer);
+    // BUG13+15 FIX: show short caption (first 80 chars) for deaf users
+    const c=document.getElementById('cap-txt');
+    if(c)c.textContent=txt.substring(0,80)+(txt.length>80?'…':'');
+  };
+  // Resume mic only after speech fully ends
+  u.onend=()=>{
+    _ttsBusy=false;
+    _ttsFlush();
+    if(!vPaused&&!_ttsBusy) scheduleVRestart(150);
+    // BUG13 FIX: clear caption after speech ends so stale text doesn't linger
+    if(!_ttsBusy){const c=document.getElementById('cap-txt');if(c)c.textContent='';}
+  };
+  u.onerror=()=>{
+    _ttsBusy=false;
+    _ttsFlush();
+    if(!vPaused&&!_ttsBusy) scheduleVRestart(150);
+    if(!_ttsBusy){const c=document.getElementById('cap-txt');if(c)c.textContent='';}
+  };
+  window.speechSynthesis.speak(u);
+}
+function stopTTS(){
+  _ttsQueue=[];_ttsBusy=false;
+  window.speechSynthesis.cancel();
+  if(!vPaused) scheduleVRestart(150); // resume mic when speech force-stopped
+}
+
+/* ─────────────────────────────────────────────────────────
+   FONT SIZE
+───────────────────────────────────────────────────────── */
+let fs=16;
+function changeFontSize(d){fs=Math.max(12,Math.min(26,fs+d));document.documentElement.style.fontSize=fs+'px';}
+
+/* ─────────────────────────────────────────────────────────
+   THEME
+───────────────────────────────────────────────────────── */
+function toggleTheme(){
+  const light=document.body.classList.toggle('light');
+  document.getElementById('theme-btn').textContent=light?'☀️':'🌙';
+  localStorage.setItem('brainies_theme',light?'light':'dark');
+}
+
+/* ─────────────────────────────────────────────────────────
+   SIDEBAR — PERF: DocumentFragment + targeted class updates
+   instead of full innerHTML wipe on every render
+───────────────────────────────────────────────────────── */
+let _sbBuilt=false;
+function buildSidebar(){
+  const done=JSON.parse(localStorage.getItem('brainies_done')||'[]');
+  const list=document.getElementById('sb-list');
+  const frag=document.createDocumentFragment();
+  LESSONS.forEach((l,i)=>{
+    const d=document.createElement('div');
+    d.className='sb-item'+(i===cur?' active':'')+(done.includes(i)?' done':'');
+    d.dataset.idx=i;
+    d.innerHTML=`<div class="sb-num">${done.includes(i)?'✓':(i+1)}</div><span>${l.title}</span>`;
+    d.onclick=()=>loadLesson(i);
+    frag.appendChild(d);
+  });
+  list.innerHTML='';
+  list.appendChild(frag);
+  _sbBuilt=true;
+  _updateSbProgress(done);
+}
+function updateSidebar(){
+  // PERF: patch existing DOM instead of full rebuild
+  const done=JSON.parse(localStorage.getItem('brainies_done')||'[]');
+  document.querySelectorAll('.sb-item').forEach(el=>{
+    const i=parseInt(el.dataset.idx);
+    el.className='sb-item'+(i===cur?' active':'')+(done.includes(i)?' done':'');
+    el.querySelector('.sb-num').textContent=done.includes(i)?'✓':(i+1);
+  });
+  _updateSbProgress(done);
+}
+function _updateSbProgress(done){
+  const pct=Math.round(done.length/LESSONS.length*100);
+  document.getElementById('sb-prog').style.width=pct+'%';
+}
+
+/* ─────────────────────────────────────────────────────────
+   QUIZ SCORE TRACKING
+───────────────────────────────────────────────────────── */
+function getQuizScores(){return JSON.parse(localStorage.getItem('brainies_quiz_scores')||'{}')}
+function saveQuizScore(li,correct){const s=getQuizScores();s[li]=correct;localStorage.setItem('brainies_quiz_scores',JSON.stringify(s));}
+
+/* ─────────────────────────────────────────────────────────
+   LOAD LESSON
+───────────────────────────────────────────────────────── */
+function loadLesson(i){
+  cur=i;localStorage.setItem('brainies_curlss',i);
+  document.getElementById('restore-btn').style.display='none';
+  document.getElementById('simp-btn').style.display='';
+  originalContent={};
+  const L=LESSONS[i];
+  const done=JSON.parse(localStorage.getItem('brainies_done')||'[]');
+  const scores=getQuizScores();
+  const quizDone=scores.hasOwnProperty(i);
+  const scoreLbl=quizDone?(scores[i]?'✅ Correct':'❌ Missed'):'';
+
+  // PERF: single innerHTML assignment — one layout pass
+  document.getElementById('lesson-main').innerHTML=`
+    <div class="lesson-tag">${L.chapter}</div>
+    <div class="lesson-title" id="lesson-title" tabindex="-1">${L.title}</div>
+    <div class="lesson-meta">
+      <span>⏱ ${L.dur} read</span>
+      <span class="meta-tag">Grade 6–8</span>
+      <span class="meta-tag">Biology</span>
+      ${done.includes(i)?'<span class="meta-tag">✅ Completed</span>':''}
+    </div>
+    <div class="content" id="lesson-content">${L.content}</div>
+    <div class="quiz-box" id="quiz-section">
+      <div class="quiz-header">
+        <div class="quiz-title">🎯 Quick Quiz</div>
+        <div class="quiz-score-badge">${quizDone?scoreLbl:'+50 pts on correct'}</div>
+      </div>
+      <div class="quiz-q" id="quiz-q" aria-live="polite">${L.q}</div>
+      <div class="quiz-opts" role="group" aria-label="Quiz options — press 1, 2, 3 or 4 to answer">
+        ${L.opts.map((o,j)=>`<button class="qopt" onclick="checkAns(this,${i},${j})" aria-label="Option ${j+1} of ${L.opts.length}: ${o}">${o}</button>`).join('')}
+      </div>
+      <!-- FIX: Deaf visual result banner (shown by checkAns) -->
+      <div id="deaf-result-banner" role="alert" aria-live="assertive"></div>
+      <div class="quiz-fb" id="qfb" role="alert"></div>
+      <div class="quiz-next" id="qnext">
+        <button class="navbtn primary" onclick="completeLess(${i})">✅ Complete lesson</button>
+        <button class="navbtn" onclick="loadLesson(${i})">↺ Try quiz again</button>
+      </div>
+    </div>
+    <div class="lesson-nav">
+      <button class="navbtn" onclick="${i>0?`loadLesson(${i-1})`:`window.location='index.html'`}">
+        ${i>0?'← '+LESSONS[i-1].title:'← Home'}
+      </button>
+      <button class="navbtn primary" onclick="${i<LESSONS.length-1?`loadLesson(${i+1})`:`window.location='index.html'`}">
+        ${i<LESSONS.length-1?LESSONS[i+1].title+' →':'🎉 Finish!'}
+      </button>
+    </div>`;
+
+  // Restore answered quiz state
+  if(quizDone){
+    document.querySelectorAll('.qopt').forEach(b=>b.disabled=true);
+    const opts=document.querySelectorAll('.qopt');
+    if(opts[QA[i].c])opts[QA[i].c].classList.add('correct');
+    document.getElementById('qnext').className='quiz-next show';
+    const fb=document.getElementById('qfb');
+    if(scores[i]){fb.className='quiz-fb show ok';fb.textContent='✅ Correct! '+QA[i].e;}
+    else{fb.className='quiz-fb show err';fb.textContent='❌ Not quite. '+QA[i].e;}
+  }
+
+  // PERF: update sidebar in place instead of full rebuild
+  if(_sbBuilt)updateSidebar();else buildSidebar();
+
+  // PERF: instant scroll, not smooth — smooth scroll causes layout
+  // thrash on low-end devices. Use instant and let CSS handle feel.
+  window.scrollTo(0,0);
+
+  // FIX: move keyboard focus to lesson title on load (Blind screen-reader + Motor keyboard nav)
+  setTimeout(()=>{
+    const t=document.getElementById('lesson-title');
+    if(t)t.focus();
+  },100);
+
+  // FIX: ADHD polite announcement so screen reader/AT knows which lesson loaded
+  const adhdSt=document.getElementById('adhd-status');
+  if(adhdSt)adhdSt.textContent='Loaded: '+L.title+'. Lesson '+(i+1)+' of '+LESSONS.length;
+
+  const _p=localStorage.getItem('brainies_profile');
+  if(_p==='blind'){
+    setTimeout(()=>{
+      speak(L.title+'. Say read lesson to hear the content. Say read quiz for the question.');
+    },500);
+  }
+}
+
+/* ─────────────────────────────────────────────────────────
+   QUIZ CHECK
+───────────────────────────────────────────────────────── */
+function checkAns(btn,li,j){
+  if(btn.disabled)return;
+  const ans=QA[li];
+  document.querySelectorAll('.qopt').forEach(b=>b.disabled=true);
+  const correct=j===ans.c;
+  const alreadyAnswered=getQuizScores().hasOwnProperty(li);
+  saveQuizScore(li,correct);
+  const fb=document.getElementById('qfb');
+  if(correct){
+    btn.classList.add('correct');
+    fb.className='quiz-fb show ok';
+    fb.textContent='✅ Correct! '+ans.e;
+    speak('Correct! '+ans.e);
+    toast('✅ Correct! +50 points','ok');
+    // FIX: Deaf visual result banner
+    const db=document.getElementById('deaf-result-banner');
+    if(db){db.className='correct';db.textContent='✅ CORRECT! '+ans.e;}
+    // FIX: ADHD polite announce
+    const adhdSt=document.getElementById('adhd-status');
+    if(adhdSt)adhdSt.textContent='Correct answer! +50 points earned.';
+    // Only award points the first time this quiz is answered
+    if(!alreadyAnswered){
+      localStorage.setItem('brainies_points',
+        (parseInt(localStorage.getItem('brainies_points')||'0')+50).toString());
+    }
+  }else{
+    btn.classList.add('wrong');
+    const opts=document.querySelectorAll('.qopt');
+    if(opts[ans.c])opts[ans.c].classList.add('correct');
+    fb.className='quiz-fb show err';
+    fb.textContent='❌ Not quite. '+ans.e;
+    const correctText=opts[ans.c]?opts[ans.c].textContent.trim():'';
+    speak('Wrong. The correct answer was: '+correctText+'. '+ans.e);
+    toast('❌ Wrong answer','err');
+    // FIX: Deaf visual result banner
+    const db=document.getElementById('deaf-result-banner');
+    if(db){db.className='wrong';db.textContent='❌ NOT QUITE. Correct: '+correctText+'. '+ans.e;}
+    // FIX: ADHD polite announce
+    const adhdSt=document.getElementById('adhd-status');
+    if(adhdSt)adhdSt.textContent='Wrong answer. Correct answer was: '+correctText;
+  }
+  document.getElementById('qnext').className='quiz-next show';
+  const badge=document.querySelector('.quiz-score-badge');
+  if(badge)badge.textContent=correct?'✅ Correct':'❌ Missed';
+}
+
+/* ─────────────────────────────────────────────────────────
+   COMPLETE LESSON — fire-and-forget save, no await blocking UI
+───────────────────────────────────────────────────────── */
+let _completing=false;
+function completeLess(i){
+  if(_completing)return; // BUG20 FIX: prevent double-fire from rapid clicks/voice
+  _completing=true;
+  const done=JSON.parse(localStorage.getItem('brainies_done')||'[]');
+  if(!done.includes(i)){done.push(i);localStorage.setItem('brainies_done',JSON.stringify(done));}
+  BrainiesAPI.saveProgress(
+    localStorage.getItem('brainies_sid') || 'guest',
+    'lesson_' + i,
+    { score: 100, completed: true, points_earned: 50, timestamp: new Date().toISOString() }
+  ).catch(() => {});
+  toast('🎉 Lesson complete!','ok');
+  speak('Lesson complete! Well done!');
+  // FIX: ADHD polite announce for AT
+  const adhdSt=document.getElementById('adhd-status');
+  if(adhdSt)adhdSt.textContent='Lesson '+(i+1)+' completed! Great work.';
+  if(_sbBuilt)updateSidebar();
+  setTimeout(()=>{
+    _completing=false;
+    if(i<LESSONS.length-1)loadLesson(i+1);
+    else window.location.href='index.html';
+  },900);
+}
+
+/* ─────────────────────────────────────────────────────────
+   READ
+───────────────────────────────────────────────────────── */
+function readLesson(){
+  const c=document.getElementById('lesson-content');
+  if(!c)return;
+  // BUG-I FIX: extract only paragraph text — skip h3 headers and callout labels
+  // that get jumbled when read as raw innerText
+  const paras=[...c.querySelectorAll('p')].map(p=>p.textContent.trim()).filter(Boolean);
+  const text=paras.join('. ').substring(0,1400);
+  speak(text||c.innerText.substring(0,1400));
+}
+
+/* ─────────────────────────────────────────────────────────
+   SIMPLIFY — PERF: parallel fetch instead of serial await-in-loop
+───────────────────────────────────────────────────────── */
+const _simplifyFallback=text=>{
+  const rep={'photosynthesis':'how plants make food','chlorophyll':'green pigment in plants','mitochondria':'energy-making part of a cell','approximately':'about','subsequently':'then','furthermore':'also','nevertheless':'but','consequently':'so','demonstrates':'shows','utilizes':'uses','significant':'important','fundamental':'basic','organisms':'living things','evaporation':'water turning into vapour','transpiration':'water loss from plant leaves'};
+  let r=text;
+  for(const[h,e]of Object.entries(rep))
+    r=r.replace(new RegExp(h,'gi'),m=>m[0]===m[0].toUpperCase()?e[0].toUpperCase()+e.slice(1):e);
+  return r;
+};
+
+async function simplifyLesson(){
+  const btn=document.getElementById('simp-btn');
+  if(btn.disabled)return; // prevent double-call
+  btn.disabled=true;
+  btn.textContent='✨ Simplifying…';
+  const paras=[...document.querySelectorAll('#lesson-content p')];
+  paras.forEach((p,i)=>{if(!originalContent[i])originalContent[i]=p.textContent;});
+  paras.forEach(p=>p.textContent='Simplifying…');
+
+  const results=await Promise.all(paras.map(async(p,i)=>{
+    try{
+      const d=await BrainiesAPI.simplify(originalContent[i]);
+      return d.result||originalContent[i];
+    }catch{return _simplifyFallback(originalContent[i]);}
+  }));
+
+  paras.forEach((p,i)=>p.textContent=results[i]);
+  btn.disabled=false;
+  btn.textContent='✨ Simplify';
+  document.getElementById('simp-btn').style.display='none';
+  document.getElementById('restore-btn').style.display='';
+  toast('✅ Text simplified!','ok');
+  speak('Text simplified.');
+}
+
+/* ─────────────────────────────────────────────────────────
+   RESTORE
+───────────────────────────────────────────────────────── */
+function restoreLesson(){
+  document.querySelectorAll('#lesson-content p')
+    .forEach((p,i)=>{if(originalContent[i])p.textContent=originalContent[i];});
+  document.getElementById('restore-btn').style.display='none';
+  document.getElementById('simp-btn').style.display='';
+  originalContent={};
+  toast('↩ Original text restored');
+}
+
+/* ─────────────────────────────────────────────────────────
+   TRANSLATE — PERF: parallel fetch for all paragraphs
+───────────────────────────────────────────────────────── */
+async function translateLesson(lang){
+  if(!lang)return;
+  const paras=[...document.querySelectorAll('#lesson-content p')];
+  const origTexts=paras.map(p=>p.textContent);
+  paras.forEach(p=>p.textContent='Translating…');
+
+  const results=await Promise.all(origTexts.map(async orig=>{
+    try{
+      try{
+        const d=await BrainiesAPI.translate(orig.substring(0,500), lang);
+        if(d.error)throw new Error(d.error);
+        return d.result;
+      }catch{
+        const r=await fetch('https://api.mymemory.translated.net/get?q='+
+          encodeURIComponent(orig.substring(0,500))+'&langpair=en|'+lang);
+        const d=await r.json();
+        return d.responseData.translatedText;
+      }
+    }catch{return orig;}
+  }));
+
+  paras.forEach((p,i)=>p.textContent=results[i]);
+  toast('✅ Translated!','ok');
+}
+
+/* ─────────────────────────────────────────────────────────
+   OCR — PERF: Tesseract loaded on first use only (lazy import)
+───────────────────────────────────────────────────────── */
+function openOCR(){
+  document.getElementById('ocr-modal').className='show';
+  document.getElementById('ocr-result').style.display='none';
+  document.getElementById('ocr-actions').style.display='none';
+  // Pre-load Tesseract in background when modal opens
+  if(!tesseractReady&&!document.getElementById('tesseract-script')){
+    const s=document.createElement('script');
+    s.id='tesseract-script';
+    s.src='https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js';
+    s.onload=()=>tesseractReady=true;
+    document.head.appendChild(s);
+  }
+}
+function closeOCR(){document.getElementById('ocr-modal').className='';document.getElementById('ocr-file').value='';}
+
+async function runOCR(input){
+  const file=input.files[0];if(!file)return;
+  const out=document.getElementById('ocr-result');
+  out.style.display='block';out.textContent='Loading OCR engine…';
+  // Wait for Tesseract to be ready
+  let waited=0;
+  while(!window.Tesseract&&waited<8000){await new Promise(r=>setTimeout(r,100));waited+=100;}
+  if(!window.Tesseract){out.textContent='OCR engine failed to load. Check your internet.';return;}
+  out.textContent='Scanning…';
+  try{
+    const{data:{text}}=await Tesseract.recognize(file,'eng',{
+      logger:m=>{if(m.status==='recognizing text')out.textContent='Scanning '+Math.round(m.progress*100)+'%…';}
+    });
+    ocrExtracted=text.trim();
+    out.textContent=ocrExtracted||'No text found. Try a clearer image.';
+    if(ocrExtracted)document.getElementById('ocr-actions').style.display='flex';
+  }catch{out.textContent='OCR failed. Try a clearer image.';}
+  input.value='';
+}
+function sendOCRToSimplify(){if(!ocrExtracted)return;closeOCR();toast('OCR text loaded — tap Simplify');}
+function speakOCR(){if(ocrExtracted)speak(ocrExtracted.substring(0,600));}
+
+/* ─────────────────────────────────────────────────────────
+   SPEAK QUIZ
+───────────────────────────────────────────────────────── */
+function speakQuiz(){
+  const q=document.getElementById('quiz-q');
+  if(!q)return;
+  const opts=document.querySelectorAll('.qopt');
+  let msg='Quiz question: '+q.textContent+' ';
+  opts.forEach((o,i)=>{msg+='Option '+(i+1)+': '+o.textContent.trim()+'. ';});
+  msg+='Say option 1, 2, 3, or 4 to answer.';
+  speak(msg);
+  // BUG-E FIX: update caption bar so deaf users can read the question too
+  const cap=document.getElementById('cap-txt');
+  if(cap)cap.textContent=('Q: '+q.textContent).substring(0,80);
+}
+
+/* ═══════════════════════════════════════════════════════════
+   ALWAYS-ON VOICE ENGINE
+   Key perf fixes vs original:
+   • continuous=false   → browser stops holding open mic stream
+   • interimResults=false → zero partial-result DOM updates
+   • maxAlternatives=1  → 3× faster transcription
+   • restart gap: 80ms  → was 250ms, cuts dead listening time
+   • No DOM update on every onstart/onend cycle
+   • Voice pill instead of full bar (lighter DOM)
+═══════════════════════════════════════════════════════════ */
+let vRecog=null, vOn=false, vPaused=false, vRestartTimer=null;
+
+function startVoice(){
+  if(vPaused||vOn)return;
+  const SR=window.SpeechRecognition||window.webkitSpeechRecognition;
+  if(!SR)return;
+
+  vRecog=new SR();
+  vRecog.lang='en-IN';
+  vRecog.continuous=false;       // ← was true: caused open audio stream + high CPU
+  vRecog.interimResults=false;   // ← was true: fired onresult on every syllable
+  vRecog.maxAlternatives=1;      // ← was 3: 3× work for no user benefit
+
+  vRecog.onstart=()=>{
+    vOn=true;
+    // PERF: update only a small pill, not a full bar
+    document.getElementById('voice-pill').className='show';
+    document.getElementById('vfab').className='on';
+  };
+
+  vRecog.onresult=(e)=>{
+    // PERF: only final results, no interim processing
+    let txt='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal)txt+=e.results[i][0].transcript;
+    }
+    txt=txt.toLowerCase().trim();
+    if(txt){
+      document.getElementById('voice-pill-text').textContent=txt;
+      handleLessonVoice(txt);
+    }
+  };
+
+  vRecog.onerror=(e)=>{
+    vOn=false;
+    if(e.error==='not-allowed'){
+      vPaused=true;
+      document.getElementById('vfab').className='';
+      document.getElementById('voice-pill').className='';
+      return;
+    }
+    // PERF: short delay on no-speech errors, longer only on real errors
+    scheduleVRestart(e.error==='no-speech'?80:600);
+  };
+
+  vRecog.onend=()=>{
+    vOn=false;
+    document.getElementById('voice-pill').className='';
+    // PERF: 80ms gap instead of 250ms — barely perceptible, faster pickup
+    scheduleVRestart(80);
+  };
+
+  try{vRecog.start();}catch{scheduleVRestart(800);}
+}
+
+function scheduleVRestart(ms){
+  clearTimeout(vRestartTimer);
+  vRestartTimer=setTimeout(()=>{if(!vPaused)startVoice();},ms);
+}
+
+function toggleVoice(){
+  if(vPaused){
+    vPaused=false;
+    document.getElementById('vfab').className='on';
+    startVoice();
+    speak('Voice on.');
+  }else{
+    vPaused=true;
+    clearTimeout(vRestartTimer);
+    if(vRecog){try{vRecog.stop();}catch{}}
+    vOn=false;
+    document.getElementById('vfab').className='';
+    document.getElementById('voice-pill').className='';
+    stopTTS();
+  }
+}
+
+/* ─────────────────────────────────────────────────────────
+   LESSON VOICE COMMANDS
+───────────────────────────────────────────────────────── */
+function handleLessonVoice(t){
+  // Check longer stop phrases BEFORE bare "stop" to avoid collision
+  if(/\b(stop reading|stop speaking)\b/.test(t)){stopTTS();return;}
+  if(/\b(stop|quiet|silence)\b/.test(t)){stopTTS();return;}
+  if(/\b(read lesson|read aloud|read content|repeat lesson)\b/.test(t)){readLesson();return;}
+  if(/\b(read quiz|read options|read answers|what are the options|repeat quiz)\b/.test(t)){speakQuiz();return;}
+  if(/\b(read)\b/.test(t)&&!t.includes('option')&&!t.includes('answer')){readLesson();return;}
+  if(/\b(quiz|question)\b/.test(t)){speakQuiz();return;}
+
+  // Option selection
+  const optMap={'1':0,'one':0,'first':0,'a':0,'option one':0,'answer one':0,
+                '2':1,'two':1,'second':1,'b':1,'option two':1,'answer two':1,
+                '3':2,'three':2,'third':2,'c':2,'option three':2,'answer three':2,
+                '4':3,'four':3,'fourth':3,'d':3,'option four':3,'answer four':3};
+  for(const[phrase,idx]of Object.entries(optMap)){
+    if(new RegExp('\\b'+phrase+'\\b').test(t)){
+      const btns=document.querySelectorAll('.qopt');
+      if(!btns.length){speak('No quiz visible. Scroll down.');return;}
+      if(btns[idx]){
+        if(btns[idx].disabled){speak('Already answered. Say next lesson.');return;}
+        btns[idx].click();return;
+      }
+    }
+  }
+
+  if(/\b(next|next lesson|complete|finish|done)\b/.test(t)){completeLess(cur);return;}
+  if(/\b(back|previous|go back)\b/.test(t)){loadLesson(Math.max(0,cur-1));return;}
+  if(/\b(simplify|easy language)\b/.test(t)){simplifyLesson();return;}
+  if(/\b(restore|original|undo)\b/.test(t)){restoreLesson();return;}
+  if(t.includes('hindi')){translateLesson('hi');return;}
+  if(t.includes('marathi')){translateLesson('mr');return;}
+  if(t.includes('tamil')){translateLesson('ta');return;}
+  if(t.includes('telugu')){translateLesson('te');return;}
+  if(/\b(home|go home)\b/.test(t)){speak('Going home.');setTimeout(()=>window.location.href='index.html',800);return;}
+  if(/\b(scan|ocr|camera)\b/.test(t)){openOCR();return;}
+  if(/\b(help|commands)\b/.test(t)){
+    speak('Commands: read lesson, read quiz, option 1 to 4, next, previous, simplify, translate Hindi, stop, home.');return;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────
+   OFFLINE
+───────────────────────────────────────────────────────── */
+function checkOnline(){
+  document.getElementById('offline-bar').className=
+    navigator.onLine?'offline-bar':'offline-bar show';
+}
+
+/* ─────────────────────────────────────────────────────────
+   INIT
+───────────────────────────────────────────────────────── */
+window.addEventListener('load',()=>{
+  const p=localStorage.getItem('brainies_profile');
+  if(!p){window.location.href='welcome.html';return;}
+
+  ['blind','dyslexic','adhd','deaf','motor'].forEach(m=>document.body.classList.remove('mode-'+m));
+  if(p!=='standard')document.body.classList.add('mode-'+p);
+  if(p==='deaf')document.getElementById('caption-bar').classList.add('deaf-on');
+
+  // PERF: load OpenDyslexic only once per session using a global flag
+  // BUG-H FIX: index.html may have already loaded it — check before injecting again
+  if(p==='dyslexic'&&!window.__odLoaded&&!document.querySelector('[data-od]')){
+    window.__odLoaded=true;
+    const lnk=document.createElement('link');
+    lnk.rel='stylesheet';lnk.dataset.od='1';
+    lnk.href='https://fonts.cdnfonts.com/css/opendyslexic';
+    document.head.appendChild(lnk);
+  }
+
+  if(localStorage.getItem('brainies_theme')==='light'){
+    document.body.classList.add('light');
+    document.getElementById('theme-btn').textContent='☀️';
+  }
+
+  cur=parseInt(localStorage.getItem('brainies_curlss')||'0');
+  if(cur<0||cur>=LESSONS.length)cur=0;
+
+  loadLesson(cur);
+  buildSidebar();
+  checkOnline();
+  window.addEventListener('online',checkOnline);
+  window.addEventListener('offline',checkOnline);
+
+  // BUG1 FIX: speak instructions first, THEN start voice (mic never open during TTS)
+  setTimeout(()=>{
+    if(p==='blind'){
+      speak('Lesson loaded. '+LESSONS[cur].title+'. Say read lesson for content. Say read quiz for the question. Say help for commands.', startVoice);
+    } else {
+      startVoice();
+    }
+  },200);
+
+  // Expose hooks
+  window.nextLesson=()=>completeLess(cur);
+  window.prevLesson=()=>loadLesson(Math.max(0,cur-1));
+  window.simplifyLesson=simplifyLesson;
+  window.translateLesson=translateLesson;
+  window.speakQuiz=speakQuiz;
+});
+
+document.addEventListener('keydown',e=>{
+  if(e.altKey&&e.key==='r'){e.preventDefault();readLesson();}
+  if(e.altKey&&e.key==='q'){e.preventDefault();speakQuiz();}
+  if(e.altKey&&e.key==='ArrowRight'){e.preventDefault();completeLess(cur);}
+  if(e.altKey&&e.key==='ArrowLeft'){e.preventDefault();loadLesson(Math.max(0,cur-1));}
+  if(e.key==='Escape')closeOCR();
+  // FIX: Motor — press 1/2/3/4 to answer quiz (no mouse needed)
+  if(['1','2','3','4'].includes(e.key)&&!e.altKey&&!e.ctrlKey&&!e.metaKey){
+    const tag=document.activeElement?.tagName;
+    if(tag==='INPUT'||tag==='TEXTAREA'||tag==='SELECT')return;
+    const idx=parseInt(e.key)-1;
+    const btns=document.querySelectorAll('.qopt');
+    if(btns[idx]&&!btns[idx].disabled){e.preventDefault();btns[idx].click();}
+  }
+});
+</script>
+</body>
+</html>

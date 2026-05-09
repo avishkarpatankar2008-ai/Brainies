@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<link rel="manifest" href="../manifest.json"/>
+<title>Brainies — Home</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<!-- PERF: 2 weights only (was 4: 400,500,600,700) -->
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;700&family=Sora:wght@700;800&display=swap" rel="stylesheet"/>
+<!-- PERF: OpenDyslexic injected lazily by JS only when dyslexic mode active -->
+<style>
+/* ── SKIP NAV ── */
+.skip-link{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}
+.skip-link:focus{position:fixed;top:.5rem;left:.5rem;width:auto;height:auto;padding:.55rem 1rem;
+  background:var(--green);color:#000;font-weight:700;border-radius:7px;z-index:9999;font-size:.9rem}
+:focus-visible{outline:3px solid var(--green)!important;outline-offset:3px!important}
+/* ── ADHD timer status region ── */
+#adhd-timer-announce{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0b0d0f;--bg2:#141618;--bg3:#1e2124;
+  --border:#2c2f33;--border2:#3d4247;
+  --text:#f0f2f4;--text2:#8b949e;
+  --green:#3ddc84;--green-dim:rgba(61,220,132,.10);
+  --radius:12px;
+}
+body.light{
+  --bg:#f4f6f8;--bg2:#ffffff;--bg3:#edf0f3;
+  --border:#dde1e7;--border2:#bcc3cc;
+  --text:#1a1d21;--text2:#596475;
+  --green:#1a9e56;--green-dim:rgba(26,158,86,.10);
+}
+body.mode-dyslexic{--bg:#fefce8;--bg2:#fef9c3;--bg3:#fef08a;--border:#d4c800;--border2:#b8a800;--text:#111;--text2:#444;font-size:19px!important;line-height:2!important}
+body.mode-dyslexic,body.mode-dyslexic *{font-family:'OpenDyslexic','Courier New',monospace!important;letter-spacing:.06em!important;word-spacing:.15em!important}
+body.mode-adhd{--bg:#f8f9fa;--bg2:#fff;--bg3:#f1f3f5;--border:#dee2e6;--border2:#ced4da;--text:#111;--text2:#555}
+body.mode-adhd *{animation:none!important;transition:none!important}
+body.mode-blind{--bg:#000;--bg2:#111;--bg3:#1a1a1a;--border:#555;--border2:#777;--text:#fff;--text2:#ccc;font-size:20px!important}
+body.mode-blind button,body.mode-blind a,body.mode-blind .pcard{outline:3px solid #fff!important;outline-offset:3px}
+body.mode-deaf .caption-bar{display:flex!important}
+.caption-bar.deaf-on{display:flex!important}
+.caption-bar span{max-width:80vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+body.mode-motor button,body.mode-motor a{min-height:56px!important;font-size:18px!important;padding:.75rem 1.25rem!important}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);line-height:1.6;font-size:16px;transition:background .2s,color .2s}
+
+.caption-bar{display:none;align-items:center;gap:.6rem;background:#0f172a;padding:.5rem 1.75rem;font-size:.82rem;color:#7dd3fc;border-bottom:1px solid #1e3a5f}
+.cap-dot{width:7px;height:7px;border-radius:50%;background:#60a5fa;animation:blink 1.2s ease infinite;flex-shrink:0}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.2}}
+.offline-bar{display:none;background:rgba(251,191,36,.1);border-bottom:1px solid rgba(251,191,36,.2);padding:.55rem 1.75rem;font-size:.82rem;color:#fbbf24;text-align:center}
+.offline-bar.show{display:block}
+
+/* PERF: nav on its own GPU layer — no repaint on scroll */
+nav{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;padding:.85rem 1.75rem;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50;will-change:transform;transform:translateZ(0)}
+.nav-logo{color:var(--green);font-size:1.1rem;font-weight:700;text-decoration:none;font-family:'Sora',sans-serif}
+.nav-right{margin-left:auto;display:flex;gap:.4rem;flex-wrap:wrap;align-items:center}
+.nav-name{font-size:.82rem;color:var(--text2)}
+/* PERF: transition color+border only, not "all" */
+nav a,nav button{padding:.38rem .8rem;border-radius:7px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:.8rem;cursor:pointer;text-decoration:none;font-family:'DM Sans',sans-serif;transition:color .15s,border-color .15s}
+nav a:hover,nav button:hover{border-color:var(--green);color:var(--green)}
+
+.hero{padding:3.5rem 1.75rem 2.5rem;text-align:center;border-bottom:1px solid var(--border)}
+.hero h1{font-family:'Sora',sans-serif;font-size:2.1rem;margin-bottom:.6rem;line-height:1.2}
+.hero h1 span{color:var(--green)}
+.hero p{color:var(--text2);max-width:520px;margin:0 auto 1.75rem;font-size:.92rem}
+
+.progress-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.25rem 1.5rem;max-width:520px;margin:0 auto 1.5rem;display:flex;align-items:center;gap:1.25rem;flex-wrap:wrap}
+.pc-stat{text-align:center;min-width:70px}
+.pc-num{font-family:'Sora',sans-serif;font-size:1.6rem;font-weight:800;color:var(--green)}
+.pc-lbl{font-size:.72rem;color:var(--text2);text-transform:uppercase;letter-spacing:.05em}
+.pc-bar-wrap{flex:1;min-width:120px}
+.pc-bar-label{font-size:.75rem;color:var(--text2);margin-bottom:.35rem;display:flex;justify-content:space-between}
+.pc-bar{background:var(--bg3);border-radius:50px;height:8px;overflow:hidden}
+.pc-fill{height:8px;border-radius:50px;background:var(--green);transition:width .5s ease}
+
+.hero-btns{display:flex;gap:.75rem;justify-content:center;flex-wrap:wrap}
+.btn-green{padding:.75rem 1.5rem;background:var(--green);color:#000;border:none;border-radius:9px;font-weight:700;cursor:pointer;font-size:.9rem;font-family:'Sora',sans-serif;text-decoration:none;display:inline-block;transition:background .15s,transform .08s}
+.btn-green:hover{background:#2ec870;transform:translateY(-1px)}
+.btn-outline{padding:.75rem 1.5rem;background:transparent;color:var(--text2);border:1px solid var(--border2);border-radius:9px;cursor:pointer;font-size:.9rem;text-decoration:none;font-family:'DM Sans',sans-serif;display:inline-block;transition:color .15s,border-color .15s}
+.btn-outline:hover{border-color:var(--green);color:var(--green)}
+
+.section{padding:2.5rem 1.75rem;max-width:960px;margin:0 auto}
+.section-title{font-family:'Sora',sans-serif;font-size:1.05rem;font-weight:700;margin-bottom:1.25rem;padding-bottom:.6rem;border-bottom:1px solid var(--border);color:var(--text)}
+
+.pgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:.75rem}
+.pcard{padding:1.1rem .75rem;border:1.5px solid var(--border);border-radius:11px;background:var(--bg2);cursor:pointer;text-align:center;transition:border-color .15s,background .15s}
+.pcard:hover{border-color:var(--green)}
+.pcard.active{border-color:var(--green);background:var(--green-dim)}
+.pcard.active .pname{color:var(--green)}
+.pcard .ic{font-size:1.7rem;display:block;margin-bottom:.4rem}
+.pcard .pname{font-size:.88rem;font-weight:700;color:var(--text)}
+.pcard .pdesc{font-size:.71rem;color:var(--text2);margin-top:.2rem}
+
+.demo-box{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:1.5rem;margin-top:.75rem}
+.tabs{display:flex;gap:.4rem;margin-bottom:1.25rem;flex-wrap:wrap}
+/* PERF: transition color+border only */
+.tab{padding:.4rem .9rem;border:1px solid var(--border2);border-radius:6px;background:transparent;color:var(--text2);cursor:pointer;font-size:.82rem;font-family:'DM Sans',sans-serif;transition:color .12s,border-color .12s,background .12s}
+.tab.active{background:var(--green);border-color:var(--green);color:#000;font-weight:700}
+.panel{display:none}.panel.active{display:block}
+.panel-desc{font-size:.82rem;color:var(--text2);margin-bottom:.75rem}
+textarea,input[type=text]{width:100%;padding:.65rem .8rem;background:var(--bg);border:1px solid var(--border2);border-radius:8px;color:var(--text);font-size:.88rem;resize:vertical;min-height:80px;outline:none;font-family:'DM Sans',sans-serif}
+textarea:focus,input[type=text]:focus{border-color:var(--green)}
+textarea::placeholder,input::placeholder{color:var(--text2);opacity:.6}
+select{padding:.42rem .7rem;background:var(--bg);border:1px solid var(--border2);border-radius:6px;color:var(--text2);font-size:.82rem;font-family:'DM Sans',sans-serif}
+.row{display:flex;gap:.5rem;margin-top:.6rem;flex-wrap:wrap;align-items:center}
+/* PERF: transition color+border only */
+.btn{padding:.45rem 1rem;border:1px solid var(--border2);border-radius:6px;background:var(--bg3);color:var(--text2);cursor:pointer;font-size:.82rem;font-family:'DM Sans',sans-serif;transition:color .12s,border-color .12s}
+.btn:hover{border-color:var(--green);color:var(--green)}
+.result{margin-top:.85rem;padding:.8rem;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:.88rem;color:var(--text2);display:none;line-height:1.65}
+.result.show{display:block}.result.loading{font-style:italic}
+.result.ok{color:var(--text)}.result.err{color:#f87171}
+
+.toast-wrap{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);z-index:9000;display:flex;flex-direction:column;gap:.4rem;align-items:center;pointer-events:none}
+.toast{background:var(--bg3);border:1px solid var(--border2);border-radius:8px;padding:.5rem 1.1rem;font-size:.82rem;color:var(--text);animation:toastIn .2s ease;white-space:nowrap}
+.toast.green{background:var(--green-dim);border-color:var(--green);color:var(--green)}
+.toast.red{background:rgba(248,113,113,.08);border-color:#f87171;color:#f87171}
+@keyframes toastIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+/* PERF: voice panel mic — pulse via transform, not box-shadow */
+.voice-box{text-align:center;padding:.5rem 0}
+.big-mic{width:72px;height:72px;border-radius:50%;border:2px solid var(--border2);background:var(--bg3);font-size:2rem;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;transition:border-color .15s,background .15s;position:relative}
+.big-mic:hover{border-color:var(--green)}
+.big-mic.on{border-color:var(--green);background:var(--green-dim)}
+.big-mic.on::after{content:'';position:absolute;inset:-4px;border-radius:50%;border:2px solid var(--green);animation:micRing .9s ease infinite;pointer-events:none}
+@keyframes micRing{0%{opacity:.6;transform:scale(1)}100%{opacity:0;transform:scale(1.5)}}
+.vtranscript{margin-top:.75rem;padding:.6rem .8rem;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:.85rem;color:var(--text2);min-height:2.2rem;font-style:italic;text-align:left}
+.vmic-status{font-size:.78rem;color:var(--text2);margin-top:.4rem}
+.cmds{display:grid;grid-template-columns:repeat(2,1fr);gap:.4rem;margin-top:.85rem}
+.cmd{padding:.38rem .6rem;border:1px solid var(--border);border-radius:6px;font-size:.74rem;color:var(--text2);text-align:center}
+
+.upload{border:2px dashed var(--border2);border-radius:8px;padding:2rem;text-align:center;cursor:pointer;color:var(--text2);font-size:.88rem;transition:border-color .15s,color .15s}
+.upload:hover{border-color:var(--green);color:var(--green)}
+
+/* PERF: timer progress via width transition (cheap), clock via textContent update only */
+.timer{text-align:center;padding:.75rem 0}
+.clock{font-size:3.5rem;font-weight:700;color:var(--green);font-family:'Sora',sans-serif;letter-spacing:-.03em}
+.timer-lbl{color:var(--text2);font-size:.85rem;margin:.4rem 0 .75rem}
+.prog-wrap{background:var(--bg3);border-radius:50px;height:7px;margin:.6rem auto;max-width:280px}
+.prog{height:7px;border-radius:50px;background:var(--green);width:0%;transition:width .4s linear}
+.timer-btns{display:flex;gap:.75rem;justify-content:center;margin-top:.75rem}
+
+/* PERF: a11y toolbar — transition color only */
+.a11y{position:fixed;bottom:1rem;right:1rem;display:flex;flex-direction:column;gap:.4rem}
+.tbtn{width:40px;height:40px;border-radius:50%;border:1px solid var(--border2);background:var(--bg2);color:var(--text2);cursor:pointer;font-size:.85rem;display:flex;align-items:center;justify-content:center;transition:background .15s,color .15s}
+.tbtn:hover{background:var(--green);color:#000;border-color:var(--green)}
+
+footer{text-align:center;padding:2rem;color:var(--text2);font-size:.8rem;border-top:1px solid var(--border);margin-top:2rem}
+</style>
+</head>
+<body>
+
+<a href="#profiles" class="skip-link">Skip to profile selection</a>
+<div id="adhd-timer-announce" aria-live="polite" aria-atomic="true" role="status"></div>
+
+<div class="caption-bar" id="caption-bar">
+  <div class="cap-dot"></div>
+  <span id="caption-text">Captions active</span>
+</div>
+<div class="offline-bar" id="offline-bar">📴 You are offline — cached lessons still available!</div>
+<div class="toast-wrap" id="toast-wrap"></div>
+
+<nav>
+  <a href="index.html" class="nav-logo">🧠 Brainies</a>
+  <a href="lesson.html">📖 Lessons</a>
+  <a href="dashboard.html">📊 Dashboard</a>
+  <div class="nav-right">
+    <span class="nav-name" id="nav-name"></span>
+    <button onclick="toggleTTS()">🔊 Read</button>
+    <button onclick="changeFontSize(2)">A+</button>
+    <button onclick="changeFontSize(-2)">A-</button>
+    <button onclick="toggleTheme()" id="theme-btn">🌙</button>
+    <button onclick="logout()">🚪 Logout</button>
+  </div>
+</nav>
+
+<div class="hero">
+  <h1>Learning that <span>adapts</span> to you</h1>
+  <p>AI-powered adaptive learning for blind, dyslexic, ADHD, deaf, and motor-impaired students. 100% free.</p>
+  <div class="progress-card" id="progress-card" style="display:none">
+    <div class="pc-stat"><div class="pc-num" id="pc-done">0</div><div class="pc-lbl">Lessons done</div></div>
+    <div class="pc-bar-wrap">
+      <div class="pc-bar-label"><span>Your progress</span><span id="pc-pct">0%</span></div>
+      <div class="pc-bar"><div class="pc-fill" id="pc-fill" style="width:0%"></div></div>
+    </div>
+    <div class="pc-stat"><div class="pc-num" id="pc-pts">0</div><div class="pc-lbl">Points</div></div>
+  </div>
+  <div class="hero-btns">
+    <button class="btn-green" onclick="document.getElementById('profiles').scrollIntoView({behavior:'smooth'})">🚀 Get Started</button>
+    <a href="lesson.html" class="btn-outline">📖 Start Learning</a>
+  </div>
+</div>
+
+<div class="section" id="profiles">
+  <div class="section-title">Choose your profile</div>
+  <div class="pgrid">
+    <div class="pcard" data-mode="blind"    onclick="setProfile('blind',this)">    <span class="ic">👁️</span><div class="pname">Blind</div>    <div class="pdesc">Voice + high contrast</div></div>
+    <div class="pcard" data-mode="dyslexic" onclick="setProfile('dyslexic',this)"> <span class="ic">📖</span><div class="pname">Dyslexic</div> <div class="pdesc">OpenDyslexic + cream bg</div></div>
+    <div class="pcard" data-mode="adhd"     onclick="setProfile('adhd',this)">     <span class="ic">🎯</span><div class="pname">ADHD</div>     <div class="pdesc">Clean + no animations</div></div>
+    <div class="pcard" data-mode="deaf"     onclick="setProfile('deaf',this)">     <span class="ic">🤟</span><div class="pname">Deaf</div>     <div class="pdesc">Live captions shown</div></div>
+    <div class="pcard" data-mode="motor"    onclick="setProfile('motor',this)">    <span class="ic">🖐️</span><div class="pname">Motor</div>    <div class="pdesc">Big buttons + keyboard</div></div>
+    <div class="pcard" data-mode="standard" onclick="setProfile('standard',this)"> <span class="ic">✨</span><div class="pname">Standard</div> <div class="pdesc">Default experience</div></div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="section-title">Try the features</div>
+  <div class="demo-box">
+    <div class="tabs">
+      <button class="tab active" data-tab="simplify" onclick="showTab('simplify',this)">✨ Simplify</button>
+      <button class="tab" data-tab="translate" onclick="showTab('translate',this)">🌐 Translate</button>
+      <button class="tab" data-tab="voice"     onclick="showTab('voice',this)">🎙️ Voice</button>
+      <button class="tab" data-tab="ocr"       onclick="showTab('ocr',this)">📷 OCR</button>
+      <button class="tab" data-tab="timer"     onclick="showTab('timer',this)">⏱️ Timer</button>
+    </div>
+
+    <div class="panel active" id="panel-simplify">
+      <p class="panel-desc">Paste complex text — AI rewrites it in simple language.</p>
+      <textarea id="simp-in" placeholder="Paste complex text here..."></textarea>
+      <div class="row">
+        <button class="btn-green" onclick="doSimplify()" style="padding:.45rem 1rem;font-size:.85rem">✨ Simplify</button>
+        <button class="btn" onclick="loadSample()">Load sample</button>
+        <button class="btn" onclick="speakResult('simp-out')">🔊 Read</button>
+      </div>
+      <div class="result" id="simp-out"></div>
+    </div>
+
+    <div class="panel" id="panel-translate">
+      <p class="panel-desc">Translate English text to any Indian language.</p>
+      <textarea id="trans-in" placeholder="Type English text here...">Plants make food using sunlight through photosynthesis.</textarea>
+      <div class="row">
+        <select id="lang-sel">
+          <option value="hi">Hindi</option><option value="mr">Marathi</option>
+          <option value="ta">Tamil</option><option value="te">Telugu</option>
+          <option value="bn">Bengali</option><option value="gu">Gujarati</option>
+        </select>
+        <button class="btn-green" onclick="doTranslate()" style="padding:.45rem 1rem;font-size:.85rem">🌐 Translate</button>
+        <button class="btn" onclick="speakResult('trans-out')">🔊 Read</button>
+      </div>
+      <div class="result" id="trans-out"></div>
+    </div>
+
+    <div class="panel" id="panel-voice">
+      <div class="voice-box">
+        <p class="panel-desc">Click mic and speak a command. Works best on Chrome.</p>
+        <button class="big-mic" id="page-mic" onclick="togglePageVoice()" aria-label="Toggle voice commands">🎙️</button>
+        <div class="vmic-status" id="vmic-status">Click mic to start</div>
+        <div class="vtranscript" id="vt" aria-live="polite">Your speech will appear here...</div>
+        <div class="cmds">
+          <div class="cmd">🗣 "next lesson"</div><div class="cmd">🗣 "open dashboard"</div>
+          <div class="cmd">🗣 "translate Hindi"</div><div class="cmd">🗣 "stop"</div>
+          <div class="cmd">🗣 "increase text"</div><div class="cmd">🗣 "read this"</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-ocr">
+      <p class="panel-desc">Upload a photo of any textbook page — we extract all text from it.</p>
+      <div class="upload" onclick="initOCR()" role="button" tabindex="0">📷 Click to upload image (JPG / PNG)</div>
+      <input type="file" id="ocr-file" accept="image/*" style="display:none" onchange="doOCR(this)"/>
+      <div class="result" id="ocr-out"></div>
+      <div id="ocr-actions" style="display:none;gap:.5rem;margin-top:.5rem;flex-wrap:wrap">
+        <button class="btn" onclick="sendToSimplify()">→ Simplify</button>
+        <button class="btn" onclick="sendToTranslate()">→ Translate</button>
+        <button class="btn" onclick="speakResult('ocr-out')">🔊 Read</button>
+      </div>
+    </div>
+
+    <div class="panel" id="panel-timer">
+      <div class="timer">
+        <div class="clock" id="clock">25:00</div>
+        <div class="timer-lbl" id="timer-lbl">Focus session</div>
+        <div class="prog-wrap"><div class="prog" id="prog"></div></div>
+        <div class="timer-btns">
+          <button class="btn-green" id="timer-btn" onclick="startTimer()" style="padding:.5rem 1.25rem">▶ Start</button>
+          <button class="btn" onclick="resetTimer()" style="padding:.5rem 1.25rem">↺ Reset</button>
+        </div>
+        <div style="display:flex;gap:1rem;justify-content:center;margin-top:1.25rem;flex-wrap:wrap">
+          <div style="text-align:center;padding:.75rem 1.25rem;background:var(--bg);border:1px solid var(--border);border-radius:9px">
+            <div style="font-size:1.4rem;font-weight:700;color:var(--green);font-family:'Sora',sans-serif" id="sessions-done">0</div>
+            <div style="font-size:.72rem;color:var(--text2)">Sessions done</div>
+          </div>
+          <div style="text-align:center;padding:.75rem 1.25rem;background:var(--bg);border:1px solid var(--border);border-radius:9px">
+            <div style="font-size:1.4rem;font-weight:700;color:var(--green);font-family:'Sora',sans-serif" id="focus-mins">0</div>
+            <div style="font-size:.72rem;color:var(--text2)">Focus minutes</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer>Team Brainies · Datathon 2026 · All features free · 70M+ students with disabilities in India</footer>
+
+<div class="a11y" role="toolbar" aria-label="Accessibility tools">
+  <button class="tbtn" onclick="changeFontSize(2)" title="Bigger">A+</button>
+  <button class="tbtn" onclick="changeFontSize(-2)" title="Smaller">A-</button>
+  <button class="tbtn" onclick="toggleTTS()" title="Read page">🔊</button>
+  <button class="tbtn" onclick="toggleTheme()" id="a11y-theme">🌙</button>
+</div>
+
+<!-- PERF: Tesseract (~3 MB) loaded on-demand when OCR tab is used, not on page load -->
+<script src="../assets/js/api.js"></script>
+<script>
+// API handled by /assets/js/api.js
+const TOTAL_LESSONS = 9;
+let tesseractLoaded = false;
+
+function showToast(msg, type) {
+  const wrap = document.getElementById('toast-wrap');
+  const t = document.createElement('div');
+  t.className = 'toast' + (type ? ' ' + type : '');
+  t.textContent = msg;
+  wrap.appendChild(t);
+  setTimeout(() => { t.style.cssText='opacity:0;transition:opacity .2s'; setTimeout(()=>t.remove(),220); }, 2200);
+}
+
+function toggleTheme() {
+  const light = document.body.classList.toggle('light');
+  const icon = light ? '☀️' : '🌙';
+  document.getElementById('theme-btn').textContent = icon;
+  const ab = document.getElementById('a11y-theme'); if (ab) ab.textContent = icon;
+  localStorage.setItem('brainies_theme', light ? 'light' : 'dark');
+}
+
+const ALL_MODES = ['blind','dyslexic','adhd','deaf','motor','standard'];
+function applyProfile(mode) {
+  ALL_MODES.forEach(m => document.body.classList.remove('mode-' + m));
+  if (mode && mode !== 'standard') document.body.classList.add('mode-' + mode);
+  document.querySelectorAll('.pcard').forEach(c => c.classList.toggle('active', c.dataset.mode === mode));
+  const capBar = document.getElementById('caption-bar');
+  if (capBar) {
+    // BUG14 FIX: use class not inline style — inline style survives mode switches
+    if (mode === 'deaf') capBar.classList.add('deaf-on');
+    else capBar.classList.remove('deaf-on');
+  }
+  // PERF: load OpenDyslexic lazily only when needed
+  if (mode === 'dyslexic' && !window.__odLoaded && !document.querySelector('[data-od]')) {
+    window.__odLoaded = true;
+    const lnk = document.createElement('link');
+    lnk.rel = 'stylesheet'; lnk.dataset.od = '1';
+    lnk.href = 'https://fonts.cdnfonts.com/css/opendyslexic';
+    document.head.appendChild(lnk);
+  }
+}
+window.setProfile = function(mode) {
+  localStorage.setItem('brainies_profile', mode);
+  applyProfile(mode);
+  const labels = {blind:'Blind',dyslexic:'Dyslexic',adhd:'Focus',deaf:'Deaf',motor:'Motor',standard:'Standard'};
+  showToast('✅ ' + (labels[mode]||mode) + ' mode activated', 'green');
+  speakText(labels[mode] + ' mode activated. All features are now adjusted for ' + (labels[mode]||mode) + ' users.');
+  // FIX: update page title so blind screen reader sees it
+  document.title = 'Brainies — ' + (labels[mode]||mode) + ' Mode';
+};
+
+function logout() {
+  // BUG22 FIX: clear every brainies_ key so re-registration starts fresh
+  Object.keys(localStorage)
+    .filter(k => k.startsWith('brainies_'))
+    .forEach(k => localStorage.removeItem(k));
+  window.location.href = 'welcome.html';
+}
+
+function showTab(name, btn) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(b => b.classList.remove('active'));
+  const panel = document.getElementById('panel-' + name);
+  if (panel) panel.classList.add('active');
+  if (btn) btn.classList.add('active');
+  else { const t = document.querySelector(`.tab[data-tab="${name}"]`); if (t) t.classList.add('active'); }
+}
+
+function updateProgressCard() {
+  const done = JSON.parse(localStorage.getItem('brainies_done') || '[]');
+  const pts  = parseInt(localStorage.getItem('brainies_points') || '0');
+  if (!done.length) { document.getElementById('progress-card').style.display = 'none'; return; }
+  document.getElementById('progress-card').style.display = 'flex';
+  document.getElementById('pc-done').textContent = done.length;
+  document.getElementById('pc-pts').textContent  = pts;
+  const pct = Math.round(done.length / TOTAL_LESSONS * 100);
+  document.getElementById('pc-pct').textContent  = pct + '%';
+  document.getElementById('pc-fill').style.width = pct + '%';
+}
+
+async function doSimplify() {
+  const text = document.getElementById('simp-in').value.trim();
+  if (!text) { showToast('Please enter some text first.', 'red'); return; }
+  const out = document.getElementById('simp-out');
+  out.className = 'result show loading'; out.textContent = '✨ Simplifying...';
+  try {
+    const d = await BrainiesAPI.simplify(text);
+    out.className = 'result show ok'; out.textContent = d.result || 'Could not simplify.';
+    showToast('✅ Simplified!', 'green');
+  } catch {
+    const rep = {'photosynthesis':'how plants make food','approximately':'about','subsequently':'then','furthermore':'also','demonstrates':'shows','utilizes':'uses','significant':'important','fundamental':'basic','organisms':'living things'};
+    let r = text; for (const [h,e] of Object.entries(rep)) r = r.replace(new RegExp(h,'gi'), m => m[0]===m[0].toUpperCase()?e[0].toUpperCase()+e.slice(1):e);
+    out.className = 'result show ok'; out.textContent = r;
+    showToast('⚠ Offline — basic simplification', 'red');
+  }
+}
+function loadSample() {
+  document.getElementById('simp-in').value = 'Photosynthesis is the process by which plants use sunlight, water, and carbon dioxide to produce oxygen and energy in the form of glucose, occurring in the chloroplasts of plant cells using the green pigment chlorophyll.';
+  showToast('Sample loaded');
+}
+function speakResult(id) {
+  const el = document.getElementById(id);
+  if (el && el.textContent.trim()) speakText(el.textContent);
+}
+
+async function doTranslate() {
+  const text = document.getElementById('trans-in').value.trim();
+  const lang = document.getElementById('lang-sel').value;
+  if (!text) { showToast('Enter text first.', 'red'); return; }
+  const out = document.getElementById('trans-out');
+  out.className = 'result show loading'; out.textContent = '🌐 Translating...';
+  try {
+    let result;
+    try {
+      const d = await BrainiesAPI.translate(text, lang); if (d.error) throw new Error(d.error); result = d.result;
+    } catch {
+      const r = await fetch('https://api.mymemory.translated.net/get?q='+encodeURIComponent(text)+'&langpair=en|'+lang);
+      const d = await r.json(); result = d.responseData.translatedText;
+    }
+    out.className = 'result show ok'; out.textContent = result;
+    showToast('✅ Translated!', 'green');
+  } catch { out.className='result show err'; out.textContent='Translation failed. Check internet.'; }
+}
+
+/* ── VOICE DEMO
+   FIXED: continuous=false, interimResults=false, maxAlternatives=1, onerror handler */
+let demoRecog = null, demoOn = false;
+function togglePageVoice() {
+  if (demoOn) { if (demoRecog) demoRecog.stop(); return; }
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) { showToast('Voice needs Chrome','red'); return; }
+  demoRecog = new SR();
+  demoRecog.lang = 'en-IN';
+  demoRecog.continuous = false;     // ← was true
+  demoRecog.interimResults = false; // ← was true
+  demoRecog.maxAlternatives = 1;    // ← was default
+  demoRecog.onstart = () => { demoOn=true; document.getElementById('page-mic').className='big-mic on'; document.getElementById('vmic-status').textContent='🔴 Listening...'; };
+  demoRecog.onresult = (e) => {
+    const cmd = e.results[0][0].transcript.toLowerCase();
+    document.getElementById('vt').textContent = cmd;
+    if (cmd.includes('lesson'))    window.location.href = 'lesson.html';
+    else if (cmd.includes('dashboard')) window.location.href = 'dashboard.html';
+    else if (cmd.includes('stop')) window.speechSynthesis.cancel();
+    else if (cmd.includes('read')) speakText(document.body.innerText.substring(0,400));
+    else if (cmd.includes('bigger')||cmd.includes('increase')) changeFontSize(2);
+    else if (cmd.includes('hindi')) { document.getElementById('lang-sel').value='hi'; showTab('translate',null); doTranslate(); }
+  };
+  demoRecog.onerror = demoRecog.onend = () => { demoOn=false; document.getElementById('page-mic').className='big-mic'; document.getElementById('vmic-status').textContent='Click mic to start'; };
+  demoRecog.start();
+}
+
+/* ── OCR — PERF: lazy-load Tesseract on first use */
+let ocrText = '';
+function initOCR() {
+  if (!tesseractLoaded && !document.getElementById('tesseract-script')) {
+    const s = document.createElement('script');
+    s.id = 'tesseract-script';
+    s.src = 'https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js';
+    s.onload = () => tesseractLoaded = true;
+    document.head.appendChild(s);
+  }
+  document.getElementById('ocr-file').click();
+}
+async function doOCR(input) {
+  const file = input.files[0]; if (!file) return;
+  const out = document.getElementById('ocr-out');
+  out.className = 'result show loading'; out.textContent = 'Loading OCR...';
+  document.getElementById('ocr-actions').style.display = 'none';
+  let waited = 0;
+  while (!window.Tesseract && waited < 8000) { await new Promise(r=>setTimeout(r,100)); waited+=100; }
+  if (!window.Tesseract) { out.className='result show err'; out.textContent='OCR engine failed. Check internet.'; return; }
+  try {
+    const {data:{text}} = await Tesseract.recognize(file,'eng',{logger:m=>{if(m.status==='recognizing text')out.textContent='Scanning '+Math.round(m.progress*100)+'%...';}});
+    ocrText = text.trim();
+    out.className = 'result show ok';
+    out.innerHTML = '<strong>Extracted text:</strong><br/><br/>' + (ocrText || 'No text found.');
+    if (ocrText) { document.getElementById('ocr-actions').style.display='flex'; showToast('✅ Text extracted!','green'); }
+  } catch { out.className='result show err'; out.textContent='OCR failed. Try a clearer image.'; }
+  input.value = '';
+}
+function sendToSimplify(){if(!ocrText)return;document.getElementById('simp-in').value=ocrText;showTab('simplify',null);doSimplify();}
+function sendToTranslate(){if(!ocrText)return;document.getElementById('trans-in').value=ocrText;showTab('translate',null);}
+
+/* ── TIMER */
+let timerSec=25*60,timerOn=false,timerInt=null,isBreak=false,sessCount=0;
+function updateClock(){
+  document.getElementById('clock').textContent=String(Math.floor(timerSec/60)).padStart(2,'0')+':'+String(timerSec%60).padStart(2,'0');
+  document.getElementById('prog').style.width=((isBreak?5*60:25*60)-timerSec)/(isBreak?5*60:25*60)*100+'%';
+}
+function startTimer(){
+  if(timerOn){clearInterval(timerInt);timerOn=false;document.getElementById('timer-btn').textContent='▶ Resume';return;}
+  timerOn=true;document.getElementById('timer-btn').textContent='⏸ Pause';
+  timerInt=setInterval(()=>{
+    timerSec--;updateClock();
+    if(timerSec<=0){
+      clearInterval(timerInt);timerOn=false;
+      const ann=document.getElementById('adhd-timer-announce');
+      if(!isBreak){
+        sessCount++;
+        document.getElementById('sessions-done').textContent=sessCount;
+        document.getElementById('focus-mins').textContent=sessCount*25;
+        isBreak=true;timerSec=5*60;
+        document.getElementById('timer-lbl').textContent='Break! 5 minutes.';
+        document.getElementById('clock').style.color='#fbbf24';
+        speakText('Focus done! Break time.');
+        showToast('🎉 Session done!','green');
+        // FIX: ADHD live region announce
+        if(ann)ann.textContent='Focus session complete! Take a 5-minute break.';
+      }else{
+        isBreak=false;timerSec=25*60;
+        document.getElementById('timer-lbl').textContent='Focus session';
+        document.getElementById('clock').style.color='var(--green)';
+        speakText('Break over. Ready?');
+        // FIX: ADHD live region announce
+        if(ann)ann.textContent='Break over. New 25-minute focus session starting.';
+      }
+      document.getElementById('timer-btn').textContent='▶ Start';updateClock();
+    }
+  },1000);
+}
+function resetTimer(){clearInterval(timerInt);timerOn=false;isBreak=false;timerSec=25*60;document.getElementById('timer-btn').textContent='▶ Start';document.getElementById('timer-lbl').textContent='Focus session';document.getElementById('clock').style.color='var(--green)';updateClock();}
+
+function speakText(t){
+  if(demoOn && demoRecog){ try{ demoRecog.stop(); }catch{} }
+  if(window.speechSynthesis.speaking||window.speechSynthesis.pending)
+    window.speechSynthesis.cancel();
+  const u=new SpeechSynthesisUtterance(t);
+  u.lang='en-IN'; u.rate=1.0;
+  const cap=document.getElementById('caption-text');
+  if(cap) cap.textContent=t.substring(0,80);
+  window.speechSynthesis.speak(u);
+}
+function toggleTTS(){
+  // Read only the main hero + section content, not nav and footer noise
+  const parts=[];
+  const hero=document.querySelector('.hero p');
+  if(hero)parts.push(hero.textContent);
+  document.querySelectorAll('.section-title,.pcard .pname,.pcard .pdesc').forEach(el=>parts.push(el.textContent));
+  speakText(parts.join('. ').substring(0,600));
+}
+
+let fs=16;
+function changeFontSize(d){fs=Math.max(12,Math.min(26,fs+d));document.documentElement.style.fontSize=fs+'px';}
+function checkOnline(){document.getElementById('offline-bar').className=navigator.onLine?'offline-bar':'offline-bar show';}
+
+// Fix timer memory leak: clear interval on page unload
+window.addEventListener('pagehide',()=>{if(timerInt)clearInterval(timerInt);});
+
+window.addEventListener('load',()=>{
+  const saved=localStorage.getItem('brainies_profile');
+  if(!saved){window.location.href='welcome.html';return;}
+  applyProfile(saved);
+  const name=localStorage.getItem('brainies_name');
+  if(name)document.getElementById('nav-name').textContent='👤 '+name;
+  if(localStorage.getItem('brainies_theme')==='light'){document.body.classList.add('light');document.getElementById('theme-btn').textContent='☀️';const ab=document.getElementById('a11y-theme');if(ab)ab.textContent='☀️';}
+  updateClock();updateProgressCard();checkOnline();
+  window.addEventListener('online',checkOnline);window.addEventListener('offline',checkOnline);
+  if('serviceWorker'in navigator)navigator.serviceWorker.register('service-worker.js').catch(()=>{});
+});
+document.addEventListener('keydown',e=>{
+  if(e.altKey&&e.key==='+')changeFontSize(2);
+  if(e.altKey&&e.key==='-')changeFontSize(-2);
+  if(e.altKey&&e.key==='r')toggleTTS();
+});
+</script>
+</body>
+</html>
