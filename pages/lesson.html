@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
+<link rel="manifest" href="../manifest.json"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Brainies — Lessons</title>
 <!--
@@ -37,12 +38,6 @@
   --green:#3ddc84;--green-dim:rgba(61,220,132,.12);
   --red:#f87171;--radius:12px;
 }
-body.light{
-  --bg:#f4f6f8;--bg2:#ffffff;--bg3:#edf0f3;
-  --border:#dde1e7;--border2:#bcc3cc;
-  --text:#1a1d21;--text2:#596475;
-  --green:#1a9e56;--green-dim:rgba(26,158,86,.10);
-}
 
 /* ── ACCESSIBILITY MODES ── */
 body.mode-dyslexic{--bg:#fefce8;--bg2:#fef9c3;--bg3:#fef08a;--border:#c8b400;--border2:#b8a400;--text:#111;--text2:#444;font-size:19px;line-height:2}
@@ -72,6 +67,14 @@ body.mode-motor button,body.mode-motor a,body.mode-motor .sb-item{min-height:56p
 body.mode-motor .sb-item{display:flex;align-items:center}
 
 /* PERF: will-change only on elements that actually animate */
+
+/* ── REDUCED MOTION ── */
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+/* ── HIGH CONTRAST ── */
+@media(forced-colors:active){
+  .qopt.correct,.qopt.wrong,.navbtn.primary{forced-color-adjust:none}
+  :focus-visible{outline:3px solid ButtonText!important}
+}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);
      transition:background .2s,color .2s;font-size:16px;line-height:1.6}
 
@@ -212,6 +215,7 @@ nav a:hover,nav button:hover{border-color:var(--green);color:var(--green)}
 
 <!-- FIX: skip-nav for blind/motor keyboard users -->
 <a href="#lesson-main" class="skip-link">Skip to lesson content</a>
+<a href="#lesson-sidebar" class="skip-link" style="top:3rem">Skip to lesson list</a>
 <!-- FIX: ADHD polite live region for status announcements -->
 <div id="adhd-status" aria-live="polite" aria-atomic="true" role="status"></div>
 
@@ -232,7 +236,7 @@ nav a:hover,nav button:hover{border-color:var(--green);color:var(--green)}
   <span id="voice-pill-text">Listening…</span>
 </div>
 
-<nav>
+<nav aria-label="Main navigation">
   <a href="index.html" class="nav-logo">🧠 Brainies</a>
   <div class="nav-right">
     <button onclick="readLesson()">🔊 Read</button>
@@ -247,24 +251,23 @@ nav a:hover,nav button:hover{border-color:var(--green);color:var(--green)}
     <button onclick="openOCR()">📷 Scan</button>
     <button onclick="changeFontSize(2)">A+</button>
     <button onclick="changeFontSize(-2)">A-</button>
-    <button onclick="toggleTheme()" id="theme-btn">🌙</button>
     <a href="index.html">🏠 Home</a>
   </div>
 </nav>
 
-<div class="layout">
-  <aside class="lesson-sidebar">
+<div class="layout" id="page-layout">
+  <aside class="lesson-sidebar" id="lesson-sidebar" aria-label="Lesson navigation">
     <div class="sb-hd">Science — Chapter 4</div>
-    <div class="sb-prog"><div class="sb-prog-fill" id="sb-prog"></div></div>
+    <div class="sb-prog" role="progressbar" aria-label="Course completion" aria-valuenow="0" aria-valuemin="0" aria-valuemax="100"><div class="sb-prog-fill" id="sb-prog"></div></div>
     <div id="sb-list"></div>
   </aside>
-  <main class="lesson-main" id="lesson-main"></main>
+  <main class="lesson-main" id="lesson-main" aria-label="Lesson content" aria-live="polite"></main>
 </div>
 
-<div id="ocr-modal">
+<div id="ocr-modal" role="dialog" aria-modal="true" aria-labelledby="ocr-modal-title">
   <div class="ocr-box">
-    <button class="modal-close" onclick="closeOCR()">✕ Close</button>
-    <h3>📷 Scan Textbook Page</h3>
+    <button class="modal-close" onclick="closeOCR()" aria-label="Close scan modal">✕ Close</button>
+    <h3 id="ocr-modal-title">📷 Scan Textbook Page</h3>
     <p style="font-size:.8rem;color:var(--text2);margin-bottom:.7rem">Upload a photo of any textbook page to extract text.</p>
     <div class="ocr-upload" onclick="document.getElementById('ocr-file').click()"
          role="button" tabindex="0"
@@ -280,13 +283,14 @@ nav a:hover,nav button:hover{border-color:var(--green);color:var(--green)}
   </div>
 </div>
 
-<button id="vfab" onclick="toggleVoice()" aria-label="Voice commands — click to toggle, or say help" title="Voice commands">🎙️</button>
+<button id="vfab" onclick="toggleVoice()" aria-label="Toggle voice commands — currently off. Click to activate." title="Voice commands">🎙️</button>
 
 <!--
   PERF: Tesseract loaded on-demand only when OCR modal is opened,
   not on page load. Saves ~3 MB of JS parsing on every visit.
 -->
 <script src="../assets/js/api.js"></script>
+<script src="../assets/js/brainies-voice.js" defer></script>
 <script>
 /* ═══════════════════════════════════════════════════════════
    PERF NOTES — what was slow and what was fixed:
@@ -480,11 +484,6 @@ function changeFontSize(d){fs=Math.max(12,Math.min(26,fs+d));document.documentEl
 /* ─────────────────────────────────────────────────────────
    THEME
 ───────────────────────────────────────────────────────── */
-function toggleTheme(){
-  const light=document.body.classList.toggle('light');
-  document.getElementById('theme-btn').textContent=light?'☀️':'🌙';
-  localStorage.setItem('brainies_theme',light?'light':'dark');
-}
 
 /* ─────────────────────────────────────────────────────────
    SIDEBAR — PERF: DocumentFragment + targeted class updates
@@ -500,7 +499,12 @@ function buildSidebar(){
     d.className='sb-item'+(i===cur?' active':'')+(done.includes(i)?' done':'');
     d.dataset.idx=i;
     d.innerHTML=`<div class="sb-num">${done.includes(i)?'✓':(i+1)}</div><span>${l.title}</span>`;
+    d.setAttribute('role','button');
+    d.setAttribute('tabindex','0');
+    d.setAttribute('aria-label', (done.includes(i)?'Completed: ':'Lesson '+(i+1)+': ')+l.title+(i===cur?' — current':'')); 
+    d.setAttribute('aria-current', i===cur?'page':'false');
     d.onclick=()=>loadLesson(i);
+    d.onkeydown=(e)=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();loadLesson(i);}};
     frag.appendChild(d);
   });
   list.innerHTML='';
@@ -515,6 +519,8 @@ function updateSidebar(){
     const i=parseInt(el.dataset.idx);
     el.className='sb-item'+(i===cur?' active':'')+(done.includes(i)?' done':'');
     el.querySelector('.sb-num').textContent=done.includes(i)?'✓':(i+1);
+    el.setAttribute('aria-current', i===cur?'page':'false');
+    el.setAttribute('aria-label', (done.includes(i)?'Completed: ':'Lesson '+(i+1)+': ')+LESSONS[i].title+(i===cur?' — current':''));
   });
   _updateSbProgress(done);
 }
@@ -546,7 +552,7 @@ function loadLesson(i){
   // PERF: single innerHTML assignment — one layout pass
   document.getElementById('lesson-main').innerHTML=`
     <div class="lesson-tag">${L.chapter}</div>
-    <div class="lesson-title" id="lesson-title" tabindex="-1">${L.title}</div>
+    <h1 class="lesson-title" id="lesson-title" tabindex="-1">${L.title}</h1>
     <div class="lesson-meta">
       <span>⏱ ${L.dur} read</span>
       <span class="meta-tag">Grade 6–8</span>
@@ -556,11 +562,11 @@ function loadLesson(i){
     <div class="content" id="lesson-content">${L.content}</div>
     <div class="quiz-box" id="quiz-section">
       <div class="quiz-header">
-        <div class="quiz-title">🎯 Quick Quiz</div>
+        <h2 class="quiz-title" id="quiz-heading">🎯 Quick Quiz</h2>
         <div class="quiz-score-badge">${quizDone?scoreLbl:'+50 pts on correct'}</div>
       </div>
       <div class="quiz-q" id="quiz-q" aria-live="polite">${L.q}</div>
-      <div class="quiz-opts" role="group" aria-label="Quiz options — press 1, 2, 3 or 4 to answer">
+      <div class="quiz-opts" role="group" aria-labelledby="quiz-heading" aria-label="Quiz options — press 1, 2, 3 or 4 to answer">
         ${L.opts.map((o,j)=>`<button class="qopt" onclick="checkAns(this,${i},${j})" aria-label="Option ${j+1} of ${L.opts.length}: ${o}">${o}</button>`).join('')}
       </div>
       <!-- FIX: Deaf visual result banner (shown by checkAns) -->
@@ -784,7 +790,9 @@ async function translateLesson(lang){
 /* ─────────────────────────────────────────────────────────
    OCR — PERF: Tesseract loaded on first use only (lazy import)
 ───────────────────────────────────────────────────────── */
+let _ocrOpener=null;
 function openOCR(){
+  _ocrOpener=document.activeElement;
   document.getElementById('ocr-modal').className='show';
   document.getElementById('ocr-result').style.display='none';
   document.getElementById('ocr-actions').style.display='none';
@@ -797,7 +805,8 @@ function openOCR(){
     document.head.appendChild(s);
   }
 }
-function closeOCR(){document.getElementById('ocr-modal').className='';document.getElementById('ocr-file').value='';}
+function closeOCR(){
+  if(_ocrOpener)_ocrOpener.focus();else document.getElementById('vfab').focus();document.getElementById('ocr-modal').className='';document.getElementById('ocr-file').value='';}
 
 async function runOCR(input){
   const file=input.files[0];if(!file)return;
@@ -996,11 +1005,6 @@ window.addEventListener('load',()=>{
     document.head.appendChild(lnk);
   }
 
-  if(localStorage.getItem('brainies_theme')==='light'){
-    document.body.classList.add('light');
-    document.getElementById('theme-btn').textContent='☀️';
-  }
-
   cur=parseInt(localStorage.getItem('brainies_curlss')||'0');
   if(cur<0||cur>=LESSONS.length)cur=0;
 
@@ -1029,6 +1033,7 @@ window.addEventListener('load',()=>{
 
 document.addEventListener('keydown',e=>{
   if(e.altKey&&e.key==='r'){e.preventDefault();readLesson();}
+  if(e.key==='Escape'){const m=document.getElementById('ocr-modal');if(m&&m.classList.contains('show'))closeOCR();}
   if(e.altKey&&e.key==='q'){e.preventDefault();speakQuiz();}
   if(e.altKey&&e.key==='ArrowRight'){e.preventDefault();completeLess(cur);}
   if(e.altKey&&e.key==='ArrowLeft'){e.preventDefault();loadLesson(Math.max(0,cur-1));}
@@ -1042,6 +1047,7 @@ document.addEventListener('keydown',e=>{
     if(btns[idx]&&!btns[idx].disabled){e.preventDefault();btns[idx].click();}
   }
 });
+  if('serviceWorker' in navigator) navigator.serviceWorker.register('../service-worker.js').catch(()=>{});
 </script>
 </body>
 </html>

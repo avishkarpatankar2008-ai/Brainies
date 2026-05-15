@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
+<link rel="manifest" href="../manifest.json"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Brainies — Teacher Dashboard</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
@@ -24,12 +25,13 @@
   --red:#f87171;--gold:#fbbf24;--blue:#60a5fa;--purple:#a78bfa;
   --radius:12px;
 }
-body.light{
-  --bg:#f4f6f8;--bg2:#ffffff;--bg3:#edf0f3;
-  --border:#dde1e7;--border2:#bcc3cc;
-  --text:#1a1d21;--text2:#596475;
-  --green:#1a9e56;--green-dim:rgba(26,158,86,.10);
-  --red:#dc2626;--gold:#d97706;--blue:#2563eb;--purple:#7c3aed;
+
+/* ── REDUCED MOTION ── */
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+/* ── HIGH CONTRAST ── */
+@media(forced-colors:active){
+  .tag,.alert-tag{forced-color-adjust:none}
+  :focus-visible{outline:3px solid ButtonText!important}
 }
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);transition:background .2s,color .2s}
 
@@ -65,7 +67,7 @@ nav a:hover,nav button:hover{border-color:var(--green);color:var(--green)}
 .chart-wrap{position:relative;height:190px}
 
 .export-row{display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:1.5rem;align-items:center}
-.export-row button{padding:.5rem 1.1rem;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:.82rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:color .15s,border-color .15s}
+.export-row button{padding:.5rem 1.1rem;min-height:44px;border-radius:8px;border:1px solid var(--border2);background:var(--bg3);color:var(--text2);font-size:.82rem;cursor:pointer;font-family:'DM Sans',sans-serif;transition:color .15s,border-color .15s}
 .export-row button:hover{border-color:var(--green);color:var(--green)}
 
 .table-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);overflow:hidden}
@@ -114,6 +116,8 @@ tr.at-risk td{background:rgba(248,113,113,.03)}
 <body>
 <a href="#student-table" class="skip-link">Skip to student table</a>
 
+<a href="#student-table" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden" onfocus="this.style.cssText='position:fixed;top:.5rem;left:.5rem;width:auto;height:auto;padding:.6rem 1rem;background:#3ddc84;color:#000;font-weight:700;border-radius:7px;z-index:9999;font-size:.95rem'" onblur="this.style.cssText=''">Skip to student table</a>
+<div id="sr-announce" role="status" aria-live="polite" aria-atomic="true" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0)"></div>
 <div class="toast-wrap" id="toast-wrap"></div>
 
 <div id="auth-overlay">
@@ -121,18 +125,18 @@ tr.at-risk td{background:rgba(248,113,113,.03)}
     <div style="font-size:2rem;margin-bottom:.4rem">🧠</div>
     <h2>Teacher Login</h2>
     <p>Enter your PIN to access the class dashboard.</p>
-    <input type="password" id="pin-input" placeholder="····" maxlength="8"/>
+    <label for="pin-input" style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden">PIN code</label>
+    <input type="password" id="pin-input" placeholder="····" maxlength="8" autocomplete="current-password" aria-describedby="auth-err"/>
     <button class="auth-btn" onclick="submitPin()">Enter Dashboard →</button>
     <div class="auth-err" id="auth-err"></div>
     <div style="margin-top:.9rem"><a href="index.html" style="font-size:.78rem;color:var(--text2);text-decoration:none">← Back to home</a></div>
   </div>
 </div>
 
-<nav>
+<nav aria-label="Main navigation">
   <a href="index.html" class="nav-logo">🧠 Brainies</a>
   <span class="nav-badge">👩‍🏫 Teacher view</span>
   <div class="nav-right">
-    <button onclick="toggleTheme()" id="theme-btn">🌙</button>
     <button onclick="fetchData()">↻ Refresh</button>
     <a href="lesson.html">📖 Lessons</a>
     <a href="index.html">🏠 Home</a>
@@ -140,22 +144,22 @@ tr.at-risk td{background:rgba(248,113,113,.03)}
   </div>
 </nav>
 
-<div class="main">
+<main class="main" id="main-content">
   <div class="page-title">Class Dashboard</div>
   <p class="page-sub" id="page-sub">Student progress and accessibility overview · <span id="live-time"></span></p>
   <div class="stats">
-    <div class="stat g"><div class="stat-n" id="s-total">—</div><div class="stat-l">Total students</div></div>
-    <div class="stat b"><div class="stat-n" id="s-lessons">—</div><div class="stat-l">Lessons completed</div></div>
-    <div class="stat o"><div class="stat-n" id="s-avg">—</div><div class="stat-l">Avg progress</div></div>
-    <div class="stat r"><div class="stat-n" id="s-alerts">—</div><div class="stat-l">Need attention</div></div>
+    <div class="stat g" aria-label="Total students"><div class="stat-n" id="s-total" aria-live="polite">—</div><div class="stat-l">Total students</div></div>
+    <div class="stat b" aria-label="Lessons completed"><div class="stat-n" id="s-lessons" aria-live="polite">—</div><div class="stat-l">Lessons completed</div></div>
+    <div class="stat o" aria-label="Average progress"><div class="stat-n" id="s-avg" aria-live="polite">—</div><div class="stat-l">Avg progress</div></div>
+    <div class="stat r" aria-label="Students needing attention"><div class="stat-n" id="s-alerts" aria-live="polite">—</div><div class="stat-l">Need attention</div></div>
   </div>
   <div class="charts">
-    <div class="chart-card"><div class="chart-title">Lessons per student</div><div class="chart-wrap"><canvas id="c-bar"></canvas></div></div>
-    <div class="chart-card"><div class="chart-title">Accessibility profiles</div><div class="chart-wrap"><canvas id="c-pie"></canvas></div></div>
-    <div class="chart-card"><div class="chart-title">Weekly activity</div><div class="chart-wrap"><canvas id="c-line"></canvas></div></div>
-    <div class="chart-card"><div class="chart-title">Feature usage</div><div class="chart-wrap"><canvas id="c-feat"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">Lessons per student</div><div class="chart-wrap"><canvas id="c-bar" role="img" aria-label="Bar chart: lessons completed per student"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">Accessibility profiles</div><div class="chart-wrap"><canvas id="c-pie" role="img" aria-label="Pie chart: student accessibility profile distribution"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">Weekly activity</div><div class="chart-wrap"><canvas id="c-line" role="img" aria-label="Line chart: weekly learning activity"></canvas></div></div>
+    <div class="chart-card"><div class="chart-title">Feature usage</div><div class="chart-wrap"><canvas id="c-feat" role="img" aria-label="Chart: feature usage across student profiles"></canvas></div></div>
   </div>
-  <div class="export-row">
+  <div class="export-row" role="group" aria-label="Export and alert options">
     <button onclick="exportCSV()">⬇ Export CSV</button>
     <button onclick="exportJSON()">⬇ Export JSON</button>
     <button onclick="exportPDF()">🖨 Print PDF</button>
@@ -163,7 +167,7 @@ tr.at-risk td{background:rgba(248,113,113,.03)}
   </div>
   <div class="table-wrap">
     <div class="table-toolbar">
-      <input type="search" id="search-box" placeholder="🔍 Search student..." oninput="applyFilters()"/>
+      <input type="search" id="search-box" placeholder="🔍 Search student..." aria-label="Search students" oninput="applyFilters()"/>
       <select id="filter-profile" onchange="applyFilters()" aria-label="Filter by disability profile">
         <option value="">All profiles</option>
         <option value="blind">Blind</option><option value="dyslexic">Dyslexic</option>
@@ -187,11 +191,11 @@ tr.at-risk td{background:rgba(248,113,113,.03)}
             <th scope="col">Lessons</th><th scope="col">Last active</th><th scope="col">Status</th>
           </tr>
         </thead>
-        <tbody id="tbody" aria-live="polite"></tbody>
+        <tbody id="tbody" aria-live="polite" aria-label="Student list"></tbody>
       </table>
     </div>
   </div>
-</div>
+</main>
 
 <script src="../assets/js/api.js"></script>
 <script>
@@ -199,14 +203,6 @@ tr.at-risk td{background:rgba(248,113,113,.03)}
 
 function toast(msg,type){const w=document.getElementById('toast-wrap');const t=document.createElement('div');t.className='toast'+(type?' '+type:'');t.textContent=msg;w.appendChild(t);setTimeout(()=>{t.style.cssText='opacity:0;transition:opacity .2s';setTimeout(()=>t.remove(),220)},2200);}
 
-function toggleTheme(){
-  const light=document.body.classList.toggle('light');
-  document.getElementById('theme-btn').textContent=light?'☀️':'🌙';
-  localStorage.setItem('brainies_theme',light?'light':'dark');
-  // PERF: debounce chart redraw — theme toggle fires multiple style recalcs
-  clearTimeout(window._chartRedrawTimer);
-  window._chartRedrawTimer=setTimeout(drawCharts,100);
-}
 
 /* ── AUTH */
 function showAuth(){document.getElementById('auth-overlay').className='show';}
@@ -306,13 +302,13 @@ function renderTable(data){
 
 /* ── CHARTS — PERF: only redraw when Chart.js is ready; debounced on theme change */
 let charts={};
-function chartColors(){const dark=!document.body.classList.contains('light');return{text:dark?'rgba(255,255,255,.6)':'rgba(0,0,0,.55)',grid:dark?'rgba(255,255,255,.06)':'rgba(0,0,0,.07)'};}
+function chartColors(){return{text:'rgba(255,255,255,.6)',grid:'rgba(255,255,255,.06)'};}
 function drawCharts(){
   if(!window.Chart)return;
   Object.values(charts).forEach(c=>{try{c.destroy();}catch{}});charts={};
   const tc=chartColors(),opts={responsive:true,maintainAspectRatio:false,animation:{duration:300}};
   const sc={ticks:{color:tc.text},grid:{color:tc.grid}};
-  const bg=document.body.classList.contains('light')?'#fff':'#141618';
+  const bg='#141618';
 
   charts.bar=new Chart(document.getElementById('c-bar'),{type:'bar',data:{labels:ALL_STUDENTS.map(s=>s.name.split(' ')[0]),datasets:[{data:ALL_STUDENTS.map(s=>s.lessons),backgroundColor:'rgba(61,220,132,.7)',borderRadius:4}]},options:{...opts,plugins:{legend:{display:false}},scales:{x:sc,y:sc}}});
   const pc={};ALL_STUDENTS.forEach(s=>pc[s.profile]=(pc[s.profile]||0)+1);
@@ -325,7 +321,15 @@ function drawCharts(){
 function dl(name,type,content){const a=document.createElement('a');a.href='data:'+type+';charset=utf-8,'+encodeURIComponent(content);a.download=name;document.body.appendChild(a);a.click();document.body.removeChild(a);}
 function exportCSV(){const rows=['Name,Profile,Progress,Lessons,Status',...ALL_STUDENTS.map(s=>`${s.name},${s.profile},${s.progress}%,${s.lessons},${(s.days_inactive||s.days||0)===0?'Active':(s.days_inactive||s.days||0)+'d inactive'}`)].join('\n');dl('brainies.csv','text/csv',rows);toast('✅ CSV downloaded','ok');}
 function exportJSON(){dl('brainies.json','application/json',JSON.stringify({exported:new Date().toISOString(),students:ALL_STUDENTS},null,2));toast('✅ JSON downloaded','ok');}
-function exportPDF(){const rows=ALL_STUDENTS.map(s=>`<tr><td>${s.name}</td><td>${s.profile}</td><td>${s.progress}%</td><td>${s.lessons}</td></tr>`).join('');const w=window.open('','_blank');if(!w){toast('Pop-up blocked','ok');return;}w.document.write(`<html><head><title>Brainies Report</title><style>body{font-family:Arial;padding:2rem}table{width:100%;border-collapse:collapse}th{background:#166534;color:#fff;padding:8px}td{padding:7px;border-bottom:1px solid #ddd}</style></head><body><h2>🧠 Brainies Class Report — ${new Date().toLocaleDateString()}</h2><table><thead><tr><th>Name</th><th>Profile</th><th>Progress</th><th>Lessons</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);w.document.close();setTimeout(()=>w.print(),300);toast('✅ Print opened','ok');}
+function exportPDF(){const rows=ALL_STUDENTS.map(s=>`<tr><td>${s.name}</td><td>${s.profile}</td><td>${s.progress}%</td><td>${s.lessons}</td></tr>`).join('');const w=window.open('','_blank');if(!w){toast('Pop-up blocked','ok');return;}w.document.write(`<html><head><title>Brainies Report</title><style>
+/* ── REDUCED MOTION ── */
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}}
+/* ── HIGH CONTRAST ── */
+@media(forced-colors:active){
+  .tag,.alert-tag{forced-color-adjust:none}
+  :focus-visible{outline:3px solid ButtonText!important}
+}
+body{font-family:Arial;padding:2rem}table{width:100%;border-collapse:collapse}th{background:#166534;color:#fff;padding:8px}td{padding:7px;border-bottom:1px solid #ddd}</style></head><body><h2>🧠 Brainies Class Report — ${new Date().toLocaleDateString()}</h2><table><thead><tr><th>Name</th><th>Profile</th><th>Progress</th><th>Lessons</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);w.document.close();setTimeout(()=>w.print(),300);toast('✅ Print opened','ok');}
 function sendAlerts(){const at=ALL_STUDENTS.filter(s=>(s.days_inactive||s.days||0)>3);toast('📧 Alerts sent to '+at.length+' parents');}
 
 /* ── LIVE TIME */
@@ -333,13 +337,13 @@ function updateTime(){const el=document.getElementById('live-time');if(el)el.tex
 
 /* ── INIT */
 window.addEventListener('load',()=>{
-  if(localStorage.getItem('brainies_theme')==='light'){document.body.classList.add('light');document.getElementById('theme-btn').textContent='☀️';}
   updateTime();setInterval(updateTime,60000);
   // Show demo data immediately for responsive feel
   updateStats();applyFilters();
   if(localStorage.getItem('brainies_auth')==='ok'){fetchData();}
   else{showAuth();waitForChartJS(drawCharts);}
 });
+  if('serviceWorker' in navigator) navigator.serviceWorker.register('../service-worker.js').catch(()=>{});
 </script>
 </body>
 </html>
